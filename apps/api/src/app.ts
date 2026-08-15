@@ -20,6 +20,8 @@ import { RedisSessionStore } from './session/redis-store';
 import { registerErrorHandler } from './lib/error-handler';
 import { healthRoutes } from './modules/health/routes';
 import { securityRoutes } from './modules/security/routes';
+import { authRoutes } from './modules/auth/routes';
+import { usersRoutes } from './modules/users/routes';
 
 export async function buildApp(): Promise<FastifyInstance> {
   const app = Fastify({
@@ -70,6 +72,8 @@ export async function buildApp(): Promise<FastifyInstance> {
       tags: [
         { name: 'health', description: 'Estado del servicio' },
         { name: 'security', description: 'CSRF y utilidades de seguridad' },
+        { name: 'auth', description: 'Autenticación (login, logout, sesión)' },
+        { name: 'users', description: 'Gestión de usuarios (solo ADMIN)' },
       ],
     },
     transform: jsonSchemaTransform,
@@ -83,6 +87,8 @@ export async function buildApp(): Promise<FastifyInstance> {
     async (api) => {
       await api.register(healthRoutes);
       await api.register(securityRoutes);
+      await api.register(authRoutes);
+      await api.register(usersRoutes);
     },
     { prefix: '/api/v1' },
   );
