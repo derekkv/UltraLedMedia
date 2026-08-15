@@ -6,9 +6,26 @@
   "scripts": {
     "dev": "echo \"[api] dev pendiente (Fase 2)\"",
     "build": "echo \"[api] build pendiente (Fase 2)\"",
-    "typecheck": "echo \"[api] typecheck pendiente (Fase 2)\""
+    "typecheck": "tsc --noEmit",
+    "db:generate": "prisma generate",
+    "db:migrate": "dotenv -e ../../.env -- prisma migrate dev",
+    "db:migrate:deploy": "dotenv -e ../../.env -- prisma migrate deploy",
+    "db:reset": "dotenv -e ../../.env -- prisma migrate reset",
+    "db:seed": "dotenv -e ../../.env -- tsx prisma/seed.ts",
+    "db:studio": "dotenv -e ../../.env -- prisma studio"
+  },
+  "prisma": {
+    "seed": "tsx prisma/seed.ts"
   },
   "dependencies": {
+    "@node-rs/argon2": "^2.0.2",
+    "@prisma/client": "^6.1.0",
     "@ultraled/shared": "workspace:*"
+  },
+  "devDependencies": {
+    "dotenv-cli": "^8.0.0",
+    "prisma": "^6.1.0",
+    "tsx": "^4.19.0",
+    "typescript": "^5.6.0"
   }
 }
