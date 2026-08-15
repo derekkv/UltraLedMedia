@@ -9,6 +9,7 @@ import './styles/theme.css';
 const router = createRouter({
   routeTree,
   defaultPreload: 'intent',
+  context: { queryClient },
 });
 
 declare module '@tanstack/react-router' {

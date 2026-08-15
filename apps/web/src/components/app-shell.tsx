@@ -1,41 +1,63 @@
 import * as React from 'react';
-import { Bell, ShoppingCart, Receipt, LayoutDashboard, Users, type LucideIcon } from 'lucide-react';
+import { Link, useRouterState, type LinkProps } from '@tanstack/react-router';
+import {
+  Bell,
+  ShoppingCart,
+  Receipt,
+  LayoutDashboard,
+  Users,
+  ShieldCheck,
+  LogOut,
+  type LucideIcon,
+} from 'lucide-react';
 import type { ModuleKey } from '@ultraled/shared';
+import type { CurrentUser } from '@/lib/auth';
+import { hasRole } from '@/lib/auth';
 import { cn } from '@/lib/utils';
 
 interface NavItem {
-  key: ModuleKey;
+  to: LinkProps['to'];
   label: string;
   icon: LucideIcon;
+  module?: ModuleKey;
 }
 
-export const NAV_ITEMS: NavItem[] = [
-  { key: 'VENTA', label: 'Venta', icon: ShoppingCart },
-  { key: 'COBRANZA', label: 'Cobranza', icon: Receipt },
-  { key: 'GERENCIAL', label: 'Gerencial', icon: LayoutDashboard },
-  { key: 'CLIENTES', label: 'Clientes', icon: Users },
+const MODULE_NAV: NavItem[] = [
+  { to: '/venta', label: 'Venta', icon: ShoppingCart, module: 'VENTA' },
+  { to: '/cobranza', label: 'Cobranza', icon: Receipt, module: 'COBRANZA' },
+  { to: '/gerencial', label: 'Gerencial', icon: LayoutDashboard, module: 'GERENCIAL' },
+  { to: '/clientes', label: 'Clientes', icon: Users, module: 'CLIENTES' },
 ];
+
+function navForUser(user: CurrentUser): NavItem[] {
+  const items = MODULE_NAV.filter((item) => !item.module || user.modules.includes(item.module));
+  if (hasRole(user, 'ADMIN')) {
+    items.push({ to: '/usuarios', label: 'Usuarios', icon: ShieldCheck });
+  }
+  return items;
+}
 
 function Brand(): React.ReactElement {
   return (
-    <div className="flex items-center gap-2">
+    <Link to="/" className="flex items-center gap-2">
       <span className="size-2.5 rounded-full bg-primary shadow-[0_0_10px_2px_var(--primary)]" />
       <span className="text-sm font-bold tracking-[0.2em] text-foreground">ULTRALED</span>
-    </div>
+    </Link>
   );
 }
 
 interface AppShellProps {
-  activeKey?: ModuleKey;
-  items?: NavItem[];
+  user: CurrentUser;
+  onLogout: () => void;
   children: React.ReactNode;
 }
 
-export function AppShell({
-  activeKey = 'GERENCIAL',
-  items = NAV_ITEMS,
-  children,
-}: AppShellProps): React.ReactElement {
+export function AppShell({ user, onLogout, children }: AppShellProps): React.ReactElement {
+  const items = navForUser(user);
+  const pathname = useRouterState({ select: (s) => s.location.pathname });
+  const isActive = (to: LinkProps['to']): boolean =>
+    to === '/' ? pathname === '/' : pathname.startsWith(String(to));
+
   return (
     <div className="min-h-dvh bg-background text-foreground">
       {/* Sidebar (desktop) */}
@@ -44,11 +66,42 @@ export function AppShell({
           <Brand />
         </div>
         <nav className="flex flex-col gap-1 px-3 py-2">
-          {items.map((item) => (
-            <NavButton key={item.key} item={item} active={item.key === activeKey} />
-          ))}
+          {items.map((item) => {
+            const Icon = item.icon;
+            const active = isActive(item.to);
+            return (
+              <Link
+                key={String(item.to)}
+                to={item.to}
+                className={cn(
+                  'group relative flex items-center gap-3 rounded-md px-3 py-2.5 text-sm font-medium transition-colors',
+                  active
+                    ? 'bg-surface-1 text-primary'
+                    : 'text-foreground-secondary hover:bg-surface-1 hover:text-foreground',
+                )}
+              >
+                {active && (
+                  <span className="absolute left-0 top-1/2 h-5 w-0.5 -translate-y-1/2 rounded-full bg-primary shadow-[0_0_8px_1px_var(--primary)]" />
+                )}
+                <Icon className="size-4.5" />
+                {item.label}
+              </Link>
+            );
+          })}
         </nav>
-        <div className="mt-auto p-4 text-xs text-muted-foreground">v0.1.0</div>
+        <div className="mt-auto flex flex-col gap-2 p-4">
+          <div className="truncate text-xs text-muted-foreground" title={user.email}>
+            {user.fullName}
+          </div>
+          <button
+            type="button"
+            onClick={onLogout}
+            className="flex items-center gap-2 rounded-md px-2 py-1.5 text-sm text-foreground-secondary transition-colors hover:bg-surface-1 hover:text-destructive"
+          >
+            <LogOut className="size-4" />
+            Salir
+          </button>
+        </div>
       </aside>
 
       {/* Top bar */}
@@ -57,62 +110,52 @@ export function AppShell({
           <Brand />
         </div>
         <div className="hidden text-sm text-muted-foreground md:block">Panel de operaciones</div>
-        <button
-          type="button"
-          aria-label="Notificaciones"
-          className="relative grid size-9 place-items-center rounded-md text-foreground-secondary transition-colors hover:bg-surface-2 hover:text-foreground"
-        >
-          <Bell className="size-5" />
-          <span className="absolute right-2 top-2 size-2 rounded-full bg-accent shadow-[0_0_8px_2px_var(--accent)]" />
-        </button>
+        <div className="flex items-center gap-1">
+          <button
+            type="button"
+            aria-label="Notificaciones"
+            className="relative grid size-9 place-items-center rounded-md text-foreground-secondary transition-colors hover:bg-surface-2 hover:text-foreground"
+          >
+            <Bell className="size-5" />
+            <span className="absolute right-2 top-2 size-2 rounded-full bg-accent shadow-[0_0_8px_2px_var(--accent)]" />
+          </button>
+          <button
+            type="button"
+            onClick={onLogout}
+            aria-label="Salir"
+            className="grid size-9 place-items-center rounded-md text-foreground-secondary transition-colors hover:bg-surface-2 hover:text-destructive md:hidden"
+          >
+            <LogOut className="size-5" />
+          </button>
+        </div>
       </header>
 
       {/* Contenido */}
       <main className="px-4 pb-24 pt-20 md:ml-64 md:px-8 md:pb-10">{children}</main>
 
       {/* Tab bar (móvil) */}
-      <nav className="fixed inset-x-0 bottom-0 z-30 grid grid-cols-4 border-t border-border bg-background/90 backdrop-blur-sm md:hidden">
-        {items.map((item) => (
-          <TabButton key={item.key} item={item} active={item.key === activeKey} />
-        ))}
+      <nav
+        className="fixed inset-x-0 bottom-0 z-30 grid border-t border-border bg-background/90 backdrop-blur-sm md:hidden"
+        style={{ gridTemplateColumns: `repeat(${items.length}, minmax(0, 1fr))` }}
+      >
+        {items.map((item) => {
+          const Icon = item.icon;
+          const active = isActive(item.to);
+          return (
+            <Link
+              key={String(item.to)}
+              to={item.to}
+              className={cn(
+                'flex flex-col items-center gap-1 py-2.5 text-[11px] font-medium transition-colors',
+                active ? 'text-primary' : 'text-muted-foreground',
+              )}
+            >
+              <Icon className={cn('size-5', active && 'drop-shadow-[0_0_6px_var(--primary)]')} />
+              {item.label}
+            </Link>
+          );
+        })}
       </nav>
     </div>
-  );
-}
-
-function NavButton({ item, active }: { item: NavItem; active: boolean }): React.ReactElement {
-  const Icon = item.icon;
-  return (
-    <button
-      type="button"
-      className={cn(
-        'group relative flex items-center gap-3 rounded-md px-3 py-2.5 text-sm font-medium transition-colors',
-        active
-          ? 'bg-surface-1 text-primary'
-          : 'text-foreground-secondary hover:bg-surface-1 hover:text-foreground',
-      )}
-    >
-      {active && (
-        <span className="absolute left-0 top-1/2 h-5 w-0.5 -translate-y-1/2 rounded-full bg-primary shadow-[0_0_8px_1px_var(--primary)]" />
-      )}
-      <Icon className="size-4.5" />
-      {item.label}
-    </button>
-  );
-}
-
-function TabButton({ item, active }: { item: NavItem; active: boolean }): React.ReactElement {
-  const Icon = item.icon;
-  return (
-    <button
-      type="button"
-      className={cn(
-        'flex flex-col items-center gap-1 py-2.5 text-[11px] font-medium transition-colors',
-        active ? 'text-primary' : 'text-muted-foreground',
-      )}
-    >
-      <Icon className={cn('size-5', active && 'drop-shadow-[0_0_6px_var(--primary)]')} />
-      {item.label}
-    </button>
   );
 }
