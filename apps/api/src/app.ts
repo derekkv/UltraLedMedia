@@ -7,6 +7,7 @@ import fastifyRateLimit from '@fastify/rate-limit';
 import fastifyCsrf from '@fastify/csrf-protection';
 import fastifySwagger from '@fastify/swagger';
 import fastifySwaggerUi from '@fastify/swagger-ui';
+import fastifyWebsocket from '@fastify/websocket';
 import {
   serializerCompiler,
   validatorCompiler,
@@ -22,6 +23,8 @@ import { healthRoutes } from './modules/health/routes';
 import { securityRoutes } from './modules/security/routes';
 import { authRoutes } from './modules/auth/routes';
 import { usersRoutes } from './modules/users/routes';
+import { notificationsRoutes } from './modules/notifications/routes';
+import { wsGateway } from './ws/gateway';
 
 export async function buildApp(): Promise<FastifyInstance> {
   const app = Fastify({
@@ -74,6 +77,7 @@ export async function buildApp(): Promise<FastifyInstance> {
         { name: 'security', description: 'CSRF y utilidades de seguridad' },
         { name: 'auth', description: 'Autenticación (login, logout, sesión)' },
         { name: 'users', description: 'Gestión de usuarios (solo ADMIN)' },
+        { name: 'notifications', description: 'Notificaciones y tiempo real' },
       ],
     },
     transform: jsonSchemaTransform,
@@ -82,6 +86,9 @@ export async function buildApp(): Promise<FastifyInstance> {
 
   registerErrorHandler(app);
 
+  // WebSocket (tiempo real)
+  await app.register(fastifyWebsocket);
+
   // Rutas versionadas
   await app.register(
     async (api) => {
@@ -89,6 +96,8 @@ export async function buildApp(): Promise<FastifyInstance> {
       await api.register(securityRoutes);
       await api.register(authRoutes);
       await api.register(usersRoutes);
+      await api.register(notificationsRoutes);
+      await api.register(wsGateway);
     },
     { prefix: '/api/v1' },
   );

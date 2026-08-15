@@ -30,3 +30,13 @@ export const userUpdateSchema = z.object({
   roleKeys: z.array(roleKeySchema).min(1, 'Asigna al menos un rol').optional(),
 });
 export type UserUpdateInput = z.infer<typeof userUpdateSchema>;
+
+/** Creación de una notificación dirigida a un usuario. */
+export const notificationCreateSchema = z.object({
+  userId: z.uuid(),
+  type: z.string().min(1).max(50),
+  title: z.string().min(1).max(200),
+  body: z.string().min(1).max(2000),
+  data: z.record(z.string(), z.unknown()).optional(),
+});
+export type NotificationCreateInput = z.infer<typeof notificationCreateSchema>;
