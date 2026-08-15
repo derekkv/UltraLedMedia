@@ -4,7 +4,9 @@ packages:
 
 onlyBuiltDependencies:
   - "@prisma/client"
-  - "@prisma/engines"
   - "prisma"
   - "esbuild"
   - "@node-rs/argon2"
+
+ignoredBuiltDependencies:
+  - "@prisma/engines"
