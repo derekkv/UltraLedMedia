@@ -4,30 +4,25 @@ import { cva, type VariantProps } from 'class-variance-authority';
 import { cn } from '@/lib/utils';
 
 const buttonVariants = cva(
-  'inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium transition-[color,background-color,box-shadow,transform] duration-150 ease-out outline-none focus-visible:ring-2 focus-visible:ring-ring/70 disabled:pointer-events-none disabled:opacity-50 active:scale-[0.98] [&_svg]:size-4 [&_svg]:shrink-0',
+  'inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-semibold outline-none transition-[background-color,color,box-shadow,transform] duration-150 ease-out focus-visible:ring-2 focus-visible:ring-ring/60 focus-visible:ring-offset-0 disabled:pointer-events-none disabled:opacity-50 active:scale-[0.98] [&_svg]:size-4 [&_svg]:shrink-0',
   {
     variants: {
       variant: {
-        // CTA de marca: magenta encendido
-        default:
-          'bg-accent text-accent-foreground hover:brightness-110 shadow-[0_0_16px_-4px_var(--accent)]',
-        // Acción primaria neón cian
-        primary:
-          'bg-primary text-primary-foreground hover:brightness-110 shadow-[0_0_16px_-4px_var(--primary)]',
-        outline:
-          'border border-border-strong bg-transparent text-foreground hover:border-primary/60 hover:text-primary',
+        primary: 'bg-primary text-primary-foreground hover:bg-primary-hover elevated-1',
+        secondary: 'border border-border bg-surface-2 text-foreground hover:border-border-strong',
+        outline: 'border border-border-strong bg-transparent text-foreground hover:bg-surface-2',
         ghost: 'bg-transparent text-foreground-secondary hover:bg-surface-2 hover:text-foreground',
         destructive:
-          'bg-destructive text-destructive-foreground hover:brightness-110 shadow-[0_0_16px_-4px_var(--destructive)]',
+          'bg-destructive text-destructive-foreground hover:brightness-95 elevated-1',
       },
       size: {
-        default: 'h-9 px-4 py-2',
-        sm: 'h-8 rounded-sm px-3',
-        lg: 'h-11 rounded-lg px-6',
+        default: 'h-9 px-4',
+        sm: 'h-8 rounded-sm px-3 text-[13px]',
+        lg: 'h-11 rounded-lg px-6 text-[15px]',
         icon: 'size-9',
       },
     },
-    defaultVariants: { variant: 'default', size: 'default' },
+    defaultVariants: { variant: 'primary', size: 'default' },
   },
 );
 

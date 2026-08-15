@@ -3,6 +3,7 @@ import { createFileRoute, redirect } from '@tanstack/react-router';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
+import { motion } from 'framer-motion';
 import { userCreateSchema, type UserCreateInput, SYSTEM_ROLES } from '@ultraled/shared';
 import { api, ApiException } from '@/lib/api';
 import { meQueryOptions } from '@/lib/auth';
@@ -10,6 +11,10 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Badge } from '@/components/ui/badge';
+import { Skeleton } from '@/components/ui/skeleton';
+import { toast } from '@/components/toaster';
+import { staggerContainer, staggerItem } from '@/lib/motion';
 
 interface UserRow {
   id: string;
@@ -35,8 +40,7 @@ export const Route = createFileRoute('/_app/usuarios')({
 
 function UsersPage(): React.ReactElement {
   const queryClient = useQueryClient();
-  const { data } = useQuery(usersQuery);
-  const [formError, setFormError] = React.useState<string | null>(null);
+  const { data, isLoading } = useQuery(usersQuery);
 
   const {
     register,
@@ -50,23 +54,21 @@ function UsersPage(): React.ReactElement {
 
   const createMutation = useMutation({
     mutationFn: (input: UserCreateInput) => api.post<UserRow>('/users', input),
-    onSuccess: async () => {
+    onSuccess: async (user) => {
       reset({ email: '', fullName: '', phone: '', password: '', roleKeys: [] });
       await queryClient.invalidateQueries({ queryKey: ['users'] });
+      toast.success(`Usuario ${user.fullName} creado`);
     },
     onError: (err) => {
-      setFormError(err instanceof ApiException ? err.message : 'No se pudo crear el usuario.');
+      toast.error(err instanceof ApiException ? err.message : 'No se pudo crear el usuario.');
     },
   });
 
-  const onSubmit = handleSubmit((values) => {
-    setFormError(null);
-    createMutation.mutate(values);
-  });
+  const onSubmit = handleSubmit((values) => createMutation.mutate(values));
 
   return (
     <div className="mx-auto max-w-5xl">
-      <h1 className="text-2xl font-semibold">Usuarios</h1>
+      <h1 className="text-2xl font-bold">Usuarios</h1>
       <p className="mt-1 text-sm text-muted-foreground">
         Alta y gestión de accesos (solo administración).
       </p>
@@ -78,31 +80,53 @@ function UsersPage(): React.ReactElement {
             <CardTitle>Usuarios registrados</CardTitle>
           </CardHeader>
           <CardContent className="p-0">
-            <ul className="divide-y divide-border">
-              {(data?.items ?? []).map((u) => (
-                <li key={u.id} className="flex items-center justify-between px-5 py-3">
-                  <div className="min-w-0">
-                    <p className="truncate text-sm font-medium">{u.fullName}</p>
-                    <p className="truncate text-xs text-muted-foreground">{u.email}</p>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <span className="text-xs text-foreground-secondary">{u.roles.join(', ')}</span>
-                    <span
-                      className={
-                        u.isActive
-                          ? 'rounded-full bg-success/15 px-2 py-0.5 text-[11px] text-success'
-                          : 'rounded-full bg-destructive/15 px-2 py-0.5 text-[11px] text-destructive'
-                      }
-                    >
-                      {u.isActive ? 'activo' : 'inactivo'}
-                    </span>
-                  </div>
-                </li>
-              ))}
-              {data && data.items.length === 0 && (
-                <li className="px-5 py-6 text-sm text-muted-foreground">Sin usuarios.</li>
-              )}
-            </ul>
+            {isLoading ? (
+              <div className="space-y-3 p-5">
+                {[0, 1, 2].map((i) => (
+                  <Skeleton key={i} className="h-12 w-full" />
+                ))}
+              </div>
+            ) : (
+              <motion.ul
+                variants={staggerContainer}
+                initial="hidden"
+                animate="show"
+                className="divide-y divide-border"
+              >
+                {(data?.items ?? []).map((u) => (
+                  <motion.li
+                    key={u.id}
+                    variants={staggerItem}
+                    className="flex items-center justify-between gap-3 px-5 py-3"
+                  >
+                    <div className="flex min-w-0 items-center gap-3">
+                      <div className="grid size-9 shrink-0 place-items-center rounded-full bg-primary/12 text-xs font-bold text-primary">
+                        {u.fullName.slice(0, 2).toUpperCase()}
+                      </div>
+                      <div className="min-w-0">
+                        <p className="truncate text-sm font-medium">{u.fullName}</p>
+                        <p className="truncate text-xs text-muted-foreground">{u.email}</p>
+                      </div>
+                    </div>
+                    <div className="flex shrink-0 items-center gap-2">
+                      {u.roles.map((r) => (
+                        <Badge key={r} variant="muted">
+                          {r.toLowerCase()}
+                        </Badge>
+                      ))}
+                      <Badge variant={u.isActive ? 'success' : 'destructive'}>
+                        {u.isActive ? 'activo' : 'inactivo'}
+                      </Badge>
+                    </div>
+                  </motion.li>
+                ))}
+                {data && data.items.length === 0 && (
+                  <li className="px-5 py-8 text-center text-sm text-muted-foreground">
+                    Sin usuarios.
+                  </li>
+                )}
+              </motion.ul>
+            )}
           </CardContent>
         </Card>
 
@@ -135,7 +159,7 @@ function UsersPage(): React.ReactElement {
                         type="checkbox"
                         value={role}
                         {...register('roleKeys')}
-                        className="accent-[var(--primary)]"
+                        className="size-4 accent-[var(--primary)]"
                       />
                       {role}
                     </label>
@@ -146,9 +170,7 @@ function UsersPage(): React.ReactElement {
                 )}
               </div>
 
-              {formError && <p className="text-xs text-destructive">{formError}</p>}
-
-              <Button type="submit" variant="primary" disabled={isSubmitting} className="mt-1">
+              <Button type="submit" disabled={isSubmitting} className="mt-1">
                 {isSubmitting ? 'Creando…' : 'Crear usuario'}
               </Button>
             </form>

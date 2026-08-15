@@ -1,5 +1,6 @@
 import * as React from 'react';
 import { Link, useRouterState, type LinkProps } from '@tanstack/react-router';
+import { motion } from 'framer-motion';
 import {
   ShoppingCart,
   Receipt,
@@ -12,7 +13,10 @@ import {
 import type { ModuleKey } from '@ultraled/shared';
 import type { CurrentUser } from '@/lib/auth';
 import { hasRole } from '@/lib/auth';
+import { Logo } from '@/components/logo';
+import { ThemeToggle } from '@/components/theme-toggle';
 import { Notifications } from '@/components/notifications';
+import { transition } from '@/lib/motion';
 import { cn } from '@/lib/utils';
 
 interface NavItem {
@@ -23,6 +27,7 @@ interface NavItem {
 }
 
 const MODULE_NAV: NavItem[] = [
+  { to: '/', label: 'Inicio', icon: LayoutDashboard },
   { to: '/venta', label: 'Venta', icon: ShoppingCart, module: 'VENTA' },
   { to: '/cobranza', label: 'Cobranza', icon: Receipt, module: 'COBRANZA' },
   { to: '/gerencial', label: 'Gerencial', icon: LayoutDashboard, module: 'GERENCIAL' },
@@ -35,15 +40,6 @@ function navForUser(user: CurrentUser): NavItem[] {
     items.push({ to: '/usuarios', label: 'Usuarios', icon: ShieldCheck });
   }
   return items;
-}
-
-function Brand(): React.ReactElement {
-  return (
-    <Link to="/" className="flex items-center gap-2">
-      <span className="size-2.5 rounded-full bg-primary shadow-[0_0_10px_2px_var(--primary)]" />
-      <span className="text-sm font-bold tracking-[0.2em] text-foreground">ULTRALED</span>
-    </Link>
-  );
 }
 
 interface AppShellProps {
@@ -61,11 +57,13 @@ export function AppShell({ user, onLogout, children }: AppShellProps): React.Rea
   return (
     <div className="min-h-dvh bg-background text-foreground">
       {/* Sidebar (desktop) */}
-      <aside className="fixed inset-y-0 left-0 z-30 hidden w-64 flex-col border-r border-border bg-background md:flex">
-        <div className="flex h-16 items-center px-6">
-          <Brand />
+      <aside className="fixed inset-y-0 left-0 z-30 hidden w-64 flex-col border-r border-border bg-surface-1 md:flex">
+        <div className="flex h-16 items-center px-5">
+          <Link to="/">
+            <Logo />
+          </Link>
         </div>
-        <nav className="flex flex-col gap-1 px-3 py-2">
+        <nav className="flex flex-1 flex-col gap-0.5 px-3 py-2">
           {items.map((item) => {
             const Icon = item.icon;
             const active = isActive(item.to);
@@ -74,52 +72,57 @@ export function AppShell({ user, onLogout, children }: AppShellProps): React.Rea
                 key={String(item.to)}
                 to={item.to}
                 className={cn(
-                  'group relative flex items-center gap-3 rounded-md px-3 py-2.5 text-sm font-medium transition-colors',
+                  'relative flex items-center gap-3 rounded-md px-3 py-2.5 text-sm font-medium transition-colors',
                   active
-                    ? 'bg-surface-1 text-primary'
-                    : 'text-foreground-secondary hover:bg-surface-1 hover:text-foreground',
+                    ? 'text-primary'
+                    : 'text-foreground-secondary hover:bg-surface-2 hover:text-foreground',
                 )}
               >
                 {active && (
-                  <span className="absolute left-0 top-1/2 h-5 w-0.5 -translate-y-1/2 rounded-full bg-primary shadow-[0_0_8px_1px_var(--primary)]" />
+                  <motion.span
+                    layoutId="nav-active-desktop"
+                    transition={transition}
+                    className="absolute inset-0 rounded-md bg-primary/10"
+                  />
                 )}
-                <Icon className="size-4.5" />
-                {item.label}
+                <Icon className="relative z-10 size-[18px]" />
+                <span className="relative z-10">{item.label}</span>
               </Link>
             );
           })}
         </nav>
-        <div className="mt-auto flex flex-col gap-2 p-4">
-          <div className="truncate text-xs text-muted-foreground" title={user.email}>
-            {user.fullName}
+        <div className="border-t border-border p-3">
+          <div className="flex items-center gap-3 rounded-md px-2 py-2">
+            <div className="grid size-8 shrink-0 place-items-center rounded-full bg-primary/15 text-xs font-bold text-primary">
+              {user.fullName.slice(0, 2).toUpperCase()}
+            </div>
+            <div className="min-w-0 flex-1">
+              <p className="truncate text-sm font-medium">{user.fullName}</p>
+              <p className="truncate text-xs text-muted-foreground">{user.email}</p>
+            </div>
+            <button
+              type="button"
+              onClick={onLogout}
+              aria-label="Salir"
+              className="grid size-8 place-items-center rounded-md text-muted-foreground transition-colors hover:bg-surface-2 hover:text-destructive"
+            >
+              <LogOut className="size-4" />
+            </button>
           </div>
-          <button
-            type="button"
-            onClick={onLogout}
-            className="flex items-center gap-2 rounded-md px-2 py-1.5 text-sm text-foreground-secondary transition-colors hover:bg-surface-1 hover:text-destructive"
-          >
-            <LogOut className="size-4" />
-            Salir
-          </button>
         </div>
       </aside>
 
       {/* Top bar */}
-      <header className="fixed inset-x-0 top-0 z-20 flex h-16 items-center justify-between border-b border-border bg-background/80 px-4 backdrop-blur-sm md:left-64 md:px-6">
+      <header className="fixed inset-x-0 top-0 z-20 flex h-16 items-center justify-between border-b border-border bg-background/80 px-4 backdrop-blur-md md:left-64 md:px-6">
         <div className="md:hidden">
-          <Brand />
+          <Logo />
         </div>
-        <div className="hidden text-sm text-muted-foreground md:block">Panel de operaciones</div>
+        <div className="hidden text-sm font-medium text-muted-foreground md:block">
+          Panel de operaciones
+        </div>
         <div className="flex items-center gap-1">
+          <ThemeToggle />
           <Notifications />
-          <button
-            type="button"
-            onClick={onLogout}
-            aria-label="Salir"
-            className="grid size-9 place-items-center rounded-md text-foreground-secondary transition-colors hover:bg-surface-2 hover:text-destructive md:hidden"
-          >
-            <LogOut className="size-5" />
-          </button>
         </div>
       </header>
 
@@ -128,7 +131,7 @@ export function AppShell({ user, onLogout, children }: AppShellProps): React.Rea
 
       {/* Tab bar (móvil) */}
       <nav
-        className="fixed inset-x-0 bottom-0 z-30 grid border-t border-border bg-background/90 backdrop-blur-sm md:hidden"
+        className="fixed inset-x-0 bottom-0 z-30 grid border-t border-border bg-background/90 backdrop-blur-md md:hidden"
         style={{ gridTemplateColumns: `repeat(${items.length}, minmax(0, 1fr))` }}
       >
         {items.map((item) => {
@@ -143,7 +146,7 @@ export function AppShell({ user, onLogout, children }: AppShellProps): React.Rea
                 active ? 'text-primary' : 'text-muted-foreground',
               )}
             >
-              <Icon className={cn('size-5', active && 'drop-shadow-[0_0_6px_var(--primary)]')} />
+              <Icon className="size-5" />
               {item.label}
             </Link>
           );

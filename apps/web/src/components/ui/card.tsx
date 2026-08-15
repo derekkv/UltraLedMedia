@@ -1,17 +1,13 @@
 import * as React from 'react';
 import { cn } from '@/lib/utils';
 
-/** Panel de vidrio oscuro: superficie elevada con borde tenue. */
 export function Card({
   className,
   ...props
 }: React.HTMLAttributes<HTMLDivElement>): React.ReactElement {
   return (
     <div
-      className={cn(
-        'rounded-lg border border-border bg-card/80 backdrop-blur-sm text-foreground',
-        className,
-      )}
+      className={cn('rounded-lg border border-border bg-card text-foreground elevated-1', className)}
       {...props}
     />
   );

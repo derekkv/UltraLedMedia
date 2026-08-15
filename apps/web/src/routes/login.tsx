@@ -2,26 +2,29 @@ import * as React from 'react';
 import { createFileRoute, redirect, useNavigate, useRouter } from '@tanstack/react-router';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
+import { motion } from 'framer-motion';
 import { loginSchema, type LoginInput } from '@ultraled/shared';
 import { login, meQueryOptions } from '@/lib/auth';
 import { ApiException } from '@/lib/api';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Card, CardContent } from '@/components/ui/card';
+import { Card } from '@/components/ui/card';
+import { LogoMark } from '@/components/logo';
+import { ThemeToggle } from '@/components/theme-toggle';
+import { fadeRise } from '@/lib/motion';
 
 export const Route = createFileRoute('/login')({
   validateSearch: (search: Record<string, unknown>): { redirect?: string } => ({
     redirect: typeof search.redirect === 'string' ? search.redirect : undefined,
   }),
   beforeLoad: async ({ context, search }) => {
-    // Si ya hay sesión, salir del login.
     try {
       await context.queryClient.ensureQueryData(meQueryOptions);
       throw redirect({ to: search.redirect ?? '/' });
     } catch (err) {
-      if (err instanceof ApiException) return; // sin sesión: mostrar login
-      throw err; // el redirect se propaga
+      if (err instanceof ApiException) return;
+      throw err;
     }
   },
   component: LoginPage,
@@ -43,7 +46,7 @@ function LoginPage(): React.ReactElement {
     setServerError(null);
     try {
       await login(values);
-      await router.invalidate(); // recarga /me en los guards
+      await router.invalidate();
       await navigate({ to: search.redirect ?? '/' });
     } catch (err) {
       if (err instanceof ApiException) {
@@ -59,58 +62,64 @@ function LoginPage(): React.ReactElement {
   });
 
   return (
-    <div className="grid min-h-dvh place-items-center bg-background px-4">
-      <div className="w-full max-w-sm">
-        <div className="mb-8 flex flex-col items-center gap-3">
-          <span className="size-3 rounded-full bg-primary shadow-[0_0_14px_3px_var(--primary)]" />
-          <h1 className="text-xl font-bold tracking-[0.3em] text-foreground">ULTRALED</h1>
-          <p className="text-sm text-muted-foreground">Acceso a operaciones</p>
+    <div className="relative grid min-h-dvh place-items-center bg-background px-4">
+      <div className="absolute right-4 top-4">
+        <ThemeToggle />
+      </div>
+
+      <motion.div variants={fadeRise} initial="hidden" animate="show" className="w-full max-w-sm">
+        <div className="mb-8 flex flex-col items-center gap-3 text-center">
+          <LogoMark className="size-12" />
+          <div>
+            <h1 className="text-xl font-bold tracking-tight text-foreground">Ultraled Media</h1>
+            <p className="mt-1 text-sm text-muted-foreground">Accede a tu panel de operaciones</p>
+          </div>
         </div>
 
-        <Card className="glow border-primary/20">
-          <CardContent className="p-6">
-            <form onSubmit={onSubmit} className="flex flex-col gap-4" noValidate>
-              <div className="flex flex-col gap-1.5">
-                <Label htmlFor="email">Email</Label>
-                <Input
-                  id="email"
-                  type="email"
-                  autoComplete="username"
-                  placeholder="tu@ultraled.media"
-                  {...register('email')}
-                />
-                {errors.email && (
-                  <p className="text-xs text-destructive">{errors.email.message}</p>
-                )}
-              </div>
+        <Card className="p-6">
+          <form onSubmit={onSubmit} className="flex flex-col gap-4" noValidate>
+            <div className="flex flex-col gap-1.5">
+              <Label htmlFor="email">Email</Label>
+              <Input
+                id="email"
+                type="email"
+                autoComplete="username"
+                placeholder="tu@ultraled.media"
+                {...register('email')}
+              />
+              {errors.email && <p className="text-xs text-destructive">{errors.email.message}</p>}
+            </div>
 
-              <div className="flex flex-col gap-1.5">
-                <Label htmlFor="password">Contraseña</Label>
-                <Input
-                  id="password"
-                  type="password"
-                  autoComplete="current-password"
-                  placeholder="••••••••"
-                  {...register('password')}
-                />
-                {errors.password && (
-                  <p className="text-xs text-destructive">{errors.password.message}</p>
-                )}
-              </div>
-
-              {serverError && (
-                <p className="rounded-md border border-destructive/40 bg-destructive/10 px-3 py-2 text-xs text-destructive">
-                  {serverError}
-                </p>
+            <div className="flex flex-col gap-1.5">
+              <Label htmlFor="password">Contraseña</Label>
+              <Input
+                id="password"
+                type="password"
+                autoComplete="current-password"
+                placeholder="••••••••"
+                {...register('password')}
+              />
+              {errors.password && (
+                <p className="text-xs text-destructive">{errors.password.message}</p>
               )}
+            </div>
 
-              <Button type="submit" variant="primary" className="mt-2 w-full" disabled={isSubmitting}>
-                {isSubmitting ? 'Ingresando…' : 'Ingresar'}
-              </Button>
-            </form>
-          </CardContent>
+            {serverError && (
+              <motion.p
+                initial={{ opacity: 0, y: -4 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="rounded-md border border-destructive/30 bg-destructive/10 px-3 py-2 text-xs text-destructive"
+              >
+                {serverError}
+              </motion.p>
+            )}
+
+            <Button type="submit" size="lg" className="mt-2 w-full" disabled={isSubmitting}>
+              {isSubmitting ? 'Ingresando…' : 'Ingresar'}
+            </Button>
+          </form>
         </Card>
-      </div>
+      </motion.div>
     </div>
   );
 }

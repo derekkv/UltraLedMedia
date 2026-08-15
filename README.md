@@ -78,6 +78,12 @@ WebSocket con notificaciones en vivo, y shell de UI con sistema de diseño. Los 
 negocio (Venta, Cobranza, Gerencial, Clientes) están como andamiaje vacío, listos para
 implementarse uno por uno.
 
+## Diseño / UI
+
+- Doble tema **claro/oscuro** (oscuro `#172035`, primario `#87c5ca`), con toggle persistente que respeta el sistema.
+- Estilo elegante y minimalista, **sin neón**; animaciones con **Framer Motion**; modales de confirmación (`useConfirm`) y toasts (sonner).
+- **Reglas de UI (obligatorias):** `.kiro/steering/ui-ux.md` · Sistema de diseño: `.interface-design/system.md`.
+
 ## Seguridad
 
 - Sesión stateful httpOnly + SameSite=Lax, con expiración rolling y absoluta.
