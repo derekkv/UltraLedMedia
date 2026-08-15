@@ -33,3 +33,10 @@ apps/api/prisma/*.db
 .vscode/*
 !.vscode/extensions.json
 *.swp
+
+
+# TanStack Router (generado)
+apps/web/src/routeTree.gen.ts
+
+# PWA (generado)
+apps/web/dev-dist/

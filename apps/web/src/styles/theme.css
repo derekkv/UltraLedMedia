@@ -1,0 +1,107 @@
+@import 'tailwindcss';
+
+/*
+ * Ultraled Media — sistema de diseño (mundo LED / neón).
+ * Modo oscuro primario: navy profundo con acentos cian/magenta usados con avaricia.
+ * Neón puro solo en acentos/trazos/glows; texto en variantes desaturadas para legibilidad.
+ */
+
+:root {
+  /* Superficies (elevación por lightness sobre navy) */
+  --background: #001a30; /* canvas / superficie 0 */
+  --surface-1: #04223c; /* +cards */
+  --surface-2: #06294a; /* +popover/menus */
+  --card: #04223c;
+  --popover: #06294a;
+  --input: #021c33; /* inputs: ligeramente más oscuros (inset) */
+
+  /* Texto (4 niveles) */
+  --foreground: #e6f6ff; /* primario */
+  --foreground-secondary: #aacbe0; /* secundario */
+  --muted-foreground: #6f92a8; /* terciario/metadata */
+  --foreground-disabled: #47617850;
+
+  /* Bordes (baja opacidad) */
+  --border: rgba(255, 255, 255, 0.08);
+  --border-strong: rgba(255, 255, 255, 0.16);
+  --ring: #00ffff;
+
+  /* Acentos (neón, uso escaso) */
+  --primary: #00ffff; /* cian: activo, foco, glow */
+  --primary-foreground: #001a30; /* texto sobre cian */
+  --accent: #ff00ff; /* magenta: marca, CTA, notificaciones */
+  --accent-foreground: #12001a;
+
+  /* Semánticos */
+  --destructive: #ff2d6f; /* error: rosa/rojo neón, separado del magenta */
+  --destructive-foreground: #1a0410;
+  --success: #22e0a1;
+  --warning: #ffb020;
+
+  /* Glow del elemento focal (LED encendido) */
+  --glow-primary: 0 0 0 1px rgba(0, 255, 255, 0.35), 0 0 18px -2px rgba(0, 255, 255, 0.45);
+
+  --radius: 0.625rem;
+}
+
+/* Mapeo a tokens de Tailwind v4 (genera utilidades bg-*, text-*, border-*, etc.) */
+@theme inline {
+  --color-background: var(--background);
+  --color-surface-1: var(--surface-1);
+  --color-surface-2: var(--surface-2);
+  --color-card: var(--card);
+  --color-popover: var(--popover);
+  --color-input: var(--input);
+
+  --color-foreground: var(--foreground);
+  --color-foreground-secondary: var(--foreground-secondary);
+  --color-muted-foreground: var(--muted-foreground);
+
+  --color-border: var(--border);
+  --color-border-strong: var(--border-strong);
+  --color-ring: var(--ring);
+
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-success: var(--success);
+  --color-warning: var(--warning);
+
+  --radius-lg: var(--radius);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-sm: calc(var(--radius) - 4px);
+
+  --font-sans: 'Space Grotesk', ui-sans-serif, system-ui, sans-serif;
+}
+
+@layer base {
+  html {
+    -webkit-font-smoothing: antialiased;
+    color-scheme: dark;
+  }
+  body {
+    background-color: var(--background);
+    color: var(--foreground);
+    font-family: var(--font-sans);
+    margin: 0;
+    min-height: 100dvh;
+  }
+  * {
+    border-color: var(--border);
+  }
+  h1,
+  h2,
+  h3 {
+    text-wrap: balance;
+    letter-spacing: -0.01em;
+  }
+}
+
+/* Utilidad de glow para el elemento focal / estados encendidos */
+@utility glow {
+  box-shadow: var(--glow-primary);
+}
