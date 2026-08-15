@@ -1,0 +1,14 @@
+{
+  "name": "@ultraled/web",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "echo \"[web] dev pendiente (Fase 5)\"",
+    "build": "echo \"[web] build pendiente (Fase 5)\"",
+    "typecheck": "echo \"[web] typecheck pendiente (Fase 5)\""
+  },
+  "dependencies": {
+    "@ultraled/shared": "workspace:*"
+  }
+}

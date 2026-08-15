@@ -1,0 +1,14 @@
+{
+  "name": "@ultraled/api",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "echo \"[api] dev pendiente (Fase 2)\"",
+    "build": "echo \"[api] build pendiente (Fase 2)\"",
+    "typecheck": "echo \"[api] typecheck pendiente (Fase 2)\""
+  },
+  "dependencies": {
+    "@ultraled/shared": "workspace:*"
+  }
+}
