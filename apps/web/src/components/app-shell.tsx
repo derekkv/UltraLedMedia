@@ -1,7 +1,6 @@
 import * as React from 'react';
 import { Link, useRouterState, type LinkProps } from '@tanstack/react-router';
 import {
-  Bell,
   ShoppingCart,
   Receipt,
   LayoutDashboard,
@@ -13,6 +12,7 @@ import {
 import type { ModuleKey } from '@ultraled/shared';
 import type { CurrentUser } from '@/lib/auth';
 import { hasRole } from '@/lib/auth';
+import { Notifications } from '@/components/notifications';
 import { cn } from '@/lib/utils';
 
 interface NavItem {
@@ -111,14 +111,7 @@ export function AppShell({ user, onLogout, children }: AppShellProps): React.Rea
         </div>
         <div className="hidden text-sm text-muted-foreground md:block">Panel de operaciones</div>
         <div className="flex items-center gap-1">
-          <button
-            type="button"
-            aria-label="Notificaciones"
-            className="relative grid size-9 place-items-center rounded-md text-foreground-secondary transition-colors hover:bg-surface-2 hover:text-foreground"
-          >
-            <Bell className="size-5" />
-            <span className="absolute right-2 top-2 size-2 rounded-full bg-accent shadow-[0_0_8px_2px_var(--accent)]" />
-          </button>
+          <Notifications />
           <button
             type="button"
             onClick={onLogout}
