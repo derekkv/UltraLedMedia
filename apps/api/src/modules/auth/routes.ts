@@ -52,12 +52,23 @@ export const authRoutes: FastifyPluginAsyncZod = async (app) => {
       });
 
       if (!user || !user.isActive) {
-        await audit(request, { action: 'LOGIN_FAILED', metadata: { email } });
+        await audit(request, {
+          action: 'LOGIN_FAILED',
+          entity: 'auth',
+          summary: `Intento de inicio de sesión fallido para ${email}.`,
+          extra: { email },
+        });
         return reply.status(401).send(invalid);
       }
 
       if (user.lockedUntil && user.lockedUntil > now) {
-        await audit(request, { userId: user.id, action: 'LOGIN_LOCKED' });
+        await audit(request, {
+          userId: user.id,
+          action: 'LOGIN_LOCKED',
+          entity: 'auth',
+          entityId: user.id,
+          summary: `Intento de acceso a una cuenta bloqueada (${user.email}).`,
+        });
         return reply.status(423).send({
           error: {
             code: 'ACCOUNT_LOCKED',
@@ -77,7 +88,14 @@ export const authRoutes: FastifyPluginAsyncZod = async (app) => {
             lockedUntil: locked ? new Date(now.getTime() + LOCK_DURATION_MS) : user.lockedUntil,
           },
         });
-        await audit(request, { userId: user.id, action: 'LOGIN_FAILED', metadata: { attempts, locked } });
+        await audit(request, {
+          userId: user.id,
+          action: 'LOGIN_FAILED',
+          entity: 'auth',
+          entityId: user.id,
+          summary: `Contraseña incorrecta para ${user.email} (intento ${attempts}${locked ? ', cuenta bloqueada' : ''}).`,
+          extra: { attempts, locked },
+        });
         return reply.status(401).send(invalid);
       }
 
@@ -88,7 +106,13 @@ export const authRoutes: FastifyPluginAsyncZod = async (app) => {
       });
       await request.session.regenerate();
       request.session.userId = user.id;
-      await audit(request, { userId: user.id, action: 'LOGIN_SUCCESS' });
+      await audit(request, {
+        userId: user.id,
+        action: 'LOGIN_SUCCESS',
+        entity: 'auth',
+        entityId: user.id,
+        summary: `Inició sesión ${user.email}.`,
+      });
 
       const current = await loadCurrentUser(user.id);
       if (!current) {
@@ -111,7 +135,13 @@ export const authRoutes: FastifyPluginAsyncZod = async (app) => {
     async (request, reply) => {
       const userId = request.currentUser?.id;
       await request.session.destroy();
-      await audit(request, { userId, action: 'LOGOUT' });
+      await audit(request, {
+        userId,
+        action: 'LOGOUT',
+        entity: 'auth',
+        entityId: userId,
+        summary: 'Cerró sesión.',
+      });
       return reply.send({ ok: true });
     },
   );

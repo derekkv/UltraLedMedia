@@ -10,6 +10,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card } from '@/components/ui/card';
+import { Alert } from '@/components/ui/alert';
 import { LogoMark } from '@/components/logo';
 import { ThemeToggle } from '@/components/theme-toggle';
 import { fadeRise } from '@/lib/motion';
@@ -105,13 +106,9 @@ function LoginPage(): React.ReactElement {
             </div>
 
             {serverError && (
-              <motion.p
-                initial={{ opacity: 0, y: -4 }}
-                animate={{ opacity: 1, y: 0 }}
-                className="rounded-md border border-destructive/30 bg-destructive/10 px-3 py-2 text-xs text-destructive"
-              >
-                {serverError}
-              </motion.p>
+              <motion.div initial={{ opacity: 0, y: -4 }} animate={{ opacity: 1, y: 0 }}>
+                <Alert variant="destructive">{serverError}</Alert>
+              </motion.div>
             )}
 
             <Button type="submit" size="lg" className="mt-2 w-full" disabled={isSubmitting}>

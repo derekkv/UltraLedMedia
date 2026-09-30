@@ -25,6 +25,57 @@ enum PermissionAction {
   MANAGE
 }
 
+enum GrupoComercial {
+  GASTRONOMIA
+  ROPA_MODA
+  SALUD_BELLEZA
+  TECNOLOGIA
+  LICORES_DISCOTECA
+  SUPERMERCADO_TIENDA
+  SERVICIOS_PROFESIONALES
+  FERRETERIA_CONSTRUCCION
+  EDUCACION
+  OTRO
+}
+
+enum MaterialPublicidad {
+  ENTREGA_MATERIAL
+  SOLICITA_DISENO
+}
+
+enum DuracionSpot {
+  SEG_10
+  SEG_15
+  SEG_20
+  SEG_30
+}
+
+enum PlanContratado {
+  DIARIO
+  SEMANAL
+  MENSUAL
+  TRIMESTRAL
+  ANUAL
+}
+
+enum ModalidadPago {
+  TRANSFERENCIA
+  EFECTIVO
+  DEUNA_PAYPHONE
+}
+
+enum FacturaCon {
+  DATOS_RUC
+  CONSUMIDOR_FINAL
+}
+
+enum ClienteEstado {
+  ACTIVO
+  PAUSADO
+  VENCIDO
+  CANCELADO
+}
+
 model User {
   id                  String    @id @default(uuid()) @db.Uuid
   email               String    @unique
@@ -129,4 +180,62 @@ model AuditLog {
   @@index([userId])
   @@index([createdAt])
   @@map("audit_logs")
+}
+
+/// Ficha de cliente del módulo Venta (Formulario Cliente Ultra Led).
+/// Agrega en un solo registro la empresa, la publicidad, el plan/contrato y los pagos.
+model Cliente {
+  id String @id @default(uuid()) @db.Uuid
+
+  // A. Información de la empresa cliente
+  razonSocial        String         @map("razon_social")
+  rucCedula          String         @unique @map("ruc_cedula") // normalizado (sin espacios/guiones, mayúsculas)
+  representanteLegal String?        @map("representante_legal")
+  actividadNegocio   String?        @map("actividad_negocio")
+  grupoComercial     GrupoComercial @map("grupo_comercial")
+  grupoComercialOtro String?        @map("grupo_comercial_otro")
+  direccionLocal     String?        @map("direccion_local")
+  facebook           String?
+  instagram          String?
+  tiktok             String?
+  personaContacto    String?        @map("persona_contacto")
+  telefonoWhatsapp   String?        @map("telefono_whatsapp")
+  emailAccesoEnVivo  String?        @map("email_acceso_en_vivo")
+
+  // B. Información de la publicidad
+  queDeseaPublicitar String?            @map("que_desea_publicitar")
+  tieneMaterial      MaterialPublicidad @map("tiene_material")
+  costoDisenoExtra   Decimal?           @map("costo_diseno_extra") @db.Decimal(12, 2)
+  textoPantalla      String?            @map("texto_pantalla")
+  duracionSpot       DuracionSpot       @map("duracion_spot")
+
+  // C. Plan y vigencia del contrato
+  pantallasAsignadas    String?        @map("pantallas_asignadas")
+  ubicacionPantallas    String?        @map("ubicacion_pantallas")
+  fechaInicio           DateTime       @map("fecha_inicio") @db.Date
+  fechaVencimiento      DateTime       @map("fecha_vencimiento") @db.Date
+  planContratado        PlanContratado @map("plan_contratado")
+  valorPlan             Decimal        @map("valor_plan") @db.Decimal(12, 2)
+  reproduccionesDiarias Int            @map("reproducciones_diarias")
+
+  // D. Información de pagos mensuales
+  diaPagoMensual Int           @map("dia_pago_mensual")
+  modalidadPago  ModalidadPago @map("modalidad_pago")
+  facturaCon     FacturaCon    @map("factura_con")
+
+  notas String?
+
+  estado  ClienteEstado @default(ACTIVO)
+  version Int           @default(0) // bloqueo optimista (concurrencia)
+
+  createdById String? @map("created_by_id") @db.Uuid
+  updatedById String? @map("updated_by_id") @db.Uuid
+
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  @@index([estado])
+  @@index([createdAt])
+  @@index([razonSocial])
+  @@map("clientes")
 }

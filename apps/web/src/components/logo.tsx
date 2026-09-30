@@ -1,38 +1,17 @@
 import * as React from 'react';
 import { cn } from '@/lib/utils';
 
-/** Monograma hexagonal UL de Ultraled Media (adaptable al tema). */
+/** Marca de Ultraled Media (logo PNG oficial). */
 export function LogoMark({ className }: { className?: string }): React.ReactElement {
   return (
-    <svg
-      viewBox="0 0 48 48"
-      className={cn('text-primary', className)}
-      fill="none"
-      aria-hidden="true"
-    >
-      <path
-        d="M24 3 42 13.5 V34.5 L24 45 6 34.5 V13.5 Z"
-        className="fill-primary/12 stroke-primary"
-        strokeWidth="2.25"
-        strokeLinejoin="round"
-      />
-      <path
-        d="M17 15 V27 a7 7 0 0 0 7 7 M24 34 V15"
-        className="stroke-foreground"
-        strokeWidth="2.5"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        fill="none"
-      />
-      <path
-        d="M28 15 V34 H35"
-        className="stroke-foreground"
-        strokeWidth="2.5"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        fill="none"
-      />
-    </svg>
+    <img
+      src="/logo.png"
+      alt="Ultraled Media"
+      width={256}
+      height={256}
+      className={cn('size-7 object-contain', className)}
+      draggable={false}
+    />
   );
 }
 
@@ -51,8 +30,8 @@ export function Logo({
     <div className={cn('flex items-center gap-2.5', className)}>
       <LogoMark className={cn('size-7', markClassName)} />
       {showWordmark && (
-        <span className="text-[15px] font-extrabold tracking-tight text-foreground">
-          Ultraled
+        <span className="text-[15px] font-bold uppercase tracking-tight text-foreground">
+          Ultra<span className="font-extrabold text-secondary">Led</span>
         </span>
       )}
     </div>

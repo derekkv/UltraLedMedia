@@ -2,7 +2,5 @@ import { createFileRoute } from '@tanstack/react-router';
 import { ModulePlaceholder } from '@/components/module-placeholder';
 
 export const Route = createFileRoute('/_app/cobranza')({
-  component: () => (
-    <ModulePlaceholder title="Cobranza" description="Gestión de cobranza y pagos." />
-  ),
+  component: () => <ModulePlaceholder />,
 });

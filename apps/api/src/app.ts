@@ -23,6 +23,8 @@ import { healthRoutes } from './modules/health/routes';
 import { securityRoutes } from './modules/security/routes';
 import { authRoutes } from './modules/auth/routes';
 import { usersRoutes } from './modules/users/routes';
+import { clientesRoutes } from './modules/clientes/routes';
+import { auditRoutes } from './modules/audit/routes';
 import { notificationsRoutes } from './modules/notifications/routes';
 import { wsGateway } from './ws/gateway';
 
@@ -77,6 +79,8 @@ export async function buildApp(): Promise<FastifyInstance> {
         { name: 'security', description: 'CSRF y utilidades de seguridad' },
         { name: 'auth', description: 'Autenticación (login, logout, sesión)' },
         { name: 'users', description: 'Gestión de usuarios (solo ADMIN)' },
+        { name: 'clientes', description: 'Clientes y contratos de publicidad (módulo Venta)' },
+        { name: 'audit', description: 'Registros de auditoría (actividad del sistema)' },
         { name: 'notifications', description: 'Notificaciones y tiempo real' },
       ],
     },
@@ -96,6 +100,8 @@ export async function buildApp(): Promise<FastifyInstance> {
       await api.register(securityRoutes);
       await api.register(authRoutes);
       await api.register(usersRoutes);
+      await api.register(clientesRoutes);
+      await api.register(auditRoutes);
       await api.register(notificationsRoutes);
       await api.register(wsGateway);
     },

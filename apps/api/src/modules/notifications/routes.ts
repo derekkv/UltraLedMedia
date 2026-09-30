@@ -76,11 +76,11 @@ export const notificationsRoutes: FastifyPluginAsyncZod = async (app) => {
     async (request, reply) => {
       const notification = await createNotification(request.body);
       await audit(request, {
-        userId: request.currentUser?.id,
         action: 'NOTIFICATION_SENT',
         entity: 'notification',
         entityId: notification.id,
-        metadata: { to: request.body.userId, type: request.body.type },
+        summary: `Envió la notificación "${notification.title}".`,
+        extra: { to: request.body.userId, type: request.body.type },
       });
       return reply.status(201).send(notification);
     },

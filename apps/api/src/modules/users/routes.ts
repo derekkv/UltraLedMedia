@@ -2,8 +2,8 @@ import type { FastifyPluginAsyncZod } from 'fastify-type-provider-zod';
 import { z } from 'zod';
 import { userCreateSchema, userUpdateSchema } from '@ultraled/shared';
 import { requireAuth, requireRole } from '../../security/rbac';
-import { audit } from '../../security/audit';
-import { createUser, getUser, listUsers, updateUser } from './service';
+import { audit, auditSnapshot, diffObjects } from '../../security/audit';
+import { createUser, deleteUser, getUser, listUsers, updateUser } from './service';
 
 const userSummarySchema = z.object({
   id: z.string(),
@@ -73,11 +73,11 @@ export const usersRoutes: FastifyPluginAsyncZod = async (app) => {
     async (request, reply) => {
       const user = await createUser(request.body);
       await audit(request, {
-        userId: request.currentUser?.id,
         action: 'USER_CREATED',
         entity: 'user',
         entityId: user.id,
-        metadata: { email: user.email, roles: user.roles },
+        summary: `Creó al usuario "${user.fullName}" (${user.email}) con rol(es): ${user.roles.join(', ')}.`,
+        snapshot: auditSnapshot({ ...user }),
       });
       return reply.status(201).send(user);
     },
@@ -96,15 +96,46 @@ export const usersRoutes: FastifyPluginAsyncZod = async (app) => {
       },
     },
     async (request, reply) => {
+      const before = await getUser(request.params.id);
       const user = await updateUser(request.params.id, request.body);
+      const changes = diffObjects(
+        { ...before },
+        { ...user },
+        ['fullName', 'phone', 'isActive', 'roles'],
+      );
+      const passwordChanged = Boolean(request.body.password);
       await audit(request, {
-        userId: request.currentUser?.id,
         action: 'USER_UPDATED',
         entity: 'user',
         entityId: user.id,
-        metadata: { fields: Object.keys(request.body) },
+        summary: `Editó al usuario "${user.fullName}"${passwordChanged ? ' (cambió la contraseña)' : ''}.`,
+        changes,
+        ...(passwordChanged ? { extra: { passwordChanged: true } } : {}),
       });
       return reply.send(user);
+    },
+  );
+
+  app.delete(
+    '/users/:id',
+    {
+      preHandler: [app.csrfProtection],
+      schema: {
+        tags: ['users'],
+        summary: 'Eliminar usuario',
+        params: z.object({ id: z.uuid() }),
+      },
+    },
+    async (request, reply) => {
+      const deleted = await deleteUser(request.params.id, request.currentUser?.id ?? null);
+      await audit(request, {
+        action: 'USER_DELETED',
+        entity: 'user',
+        entityId: deleted.id,
+        summary: `Eliminó al usuario "${deleted.fullName}" (${deleted.email}).`,
+        snapshot: auditSnapshot({ ...deleted }),
+      });
+      return reply.status(204).send();
     },
   );
 };

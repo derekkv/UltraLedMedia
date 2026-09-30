@@ -23,7 +23,7 @@ export function Modal({ open, onOpenChange, children, className }: ModalProps): 
                 initial="hidden"
                 animate="show"
                 exit="exit"
-                className="fixed inset-0 z-50 bg-black/50 backdrop-blur-[2px]"
+                className="fixed inset-0 z-50 bg-black/55 backdrop-blur-[3px]"
               />
             </Dialog.Overlay>
             <Dialog.Content asChild forceMount>
@@ -34,7 +34,7 @@ export function Modal({ open, onOpenChange, children, className }: ModalProps): 
                 exit="exit"
                 style={{ x: '-50%', y: '-50%' }}
                 className={cn(
-                  'fixed left-1/2 top-1/2 z-50 w-[calc(100%-2rem)] max-w-md rounded-xl border border-border bg-popover p-6 elevated-2 outline-none',
+                  'fixed left-1/2 top-1/2 z-50 flex max-h-[calc(100dvh-1.5rem)] w-[calc(100%-1.5rem)] max-w-md flex-col overflow-y-auto no-scrollbar rounded-xl bg-popover p-6 elevated-2 outline-none',
                   className,
                 )}
               >

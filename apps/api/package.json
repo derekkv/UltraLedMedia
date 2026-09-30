@@ -6,7 +6,7 @@
   "scripts": {
     "dev": "dotenv -e ../../.env -- tsx watch src/server.ts",
     "start": "dotenv -e ../../.env -- node dist/server.js",
-    "build": "echo \"[api] build de producción pendiente (se define con bundler en fase posterior)\"",
+    "build": "tsc --project tsconfig.build.json",
     "typecheck": "tsc --noEmit",
     "db:generate": "prisma generate",
     "db:migrate": "dotenv -e ../../.env -- prisma migrate dev",

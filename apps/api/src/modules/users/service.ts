@@ -125,3 +125,37 @@ export async function updateUser(id: string, input: UserUpdateInput): Promise<Us
 
   return toSummary(user);
 }
+
+/**
+ * Elimina un usuario. Devuelve el resumen del usuario eliminado (para auditoría).
+ * Protege contra la auto-eliminación y contra dejar el sistema sin administradores.
+ */
+export async function deleteUser(id: string, actorId: string | null): Promise<UserSummary> {
+  if (actorId && actorId === id) {
+    throw new HttpError(400, 'CANNOT_DELETE_SELF', 'No puedes eliminar tu propia cuenta.');
+  }
+
+  const user = await prisma.user.findUnique({ where: { id }, include: withRoles });
+  if (!user) throw new HttpError(404, 'USER_NOT_FOUND', 'Usuario no encontrado.');
+
+  const isAdmin = user.roles.some((ur) => ur.role.key === 'ADMIN');
+  if (isAdmin) {
+    const admins = await prisma.user.count({
+      where: { isActive: true, roles: { some: { role: { key: 'ADMIN' } } } },
+    });
+    if (admins <= 1) {
+      throw new HttpError(
+        400,
+        'LAST_ADMIN',
+        'No puedes eliminar al último administrador activo.',
+      );
+    }
+  }
+
+  await prisma.$transaction(async (tx) => {
+    await tx.userRole.deleteMany({ where: { userId: id } });
+    await tx.user.delete({ where: { id } });
+  });
+
+  return toSummary(user);
+}
