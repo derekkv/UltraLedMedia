@@ -63,3 +63,96 @@ export type FacturaCon = (typeof FACTURA_CON)[number];
 /** Estado del contrato de publicidad del cliente. */
 export const CLIENTE_ESTADOS = ['ACTIVO', 'PAUSADO', 'VENCIDO', 'CANCELADO'] as const;
 export type ClienteEstado = (typeof CLIENTE_ESTADOS)[number];
+
+/** C.1 — Catálogo de pantallas disponibles (nombre + ubicación fija + ciudad). */
+export interface PantallaCatalogo {
+  /** Clave estable para persistir la selección. */
+  key: string;
+  /** Nombre visible de la pantalla. */
+  nombre: string;
+  /** Ubicación / dirección fija de la pantalla. */
+  ubicacion: string;
+  /** Ciudad para agrupar en la UI. */
+  ciudad: string;
+}
+
+export const PANTALLAS: readonly PantallaCatalogo[] = [
+  {
+    key: 'MALL_DEL_PACIFICO',
+    nombre: 'Pantalla Mall del Pacífico',
+    ubicacion: 'Av. Malecón diagonal a Mall del Pacífico',
+    ciudad: 'Manta',
+  },
+  {
+    key: 'FLAVIO_REYES',
+    nombre: 'Pantalla Flavio Reyes',
+    ubicacion: 'Av. Flavio Reyes y Av. 24 esquina, Dental Centro',
+    ciudad: 'Manta',
+  },
+  {
+    key: 'AMBULANCIA_DEL_SABOR',
+    nombre: 'Pantalla Ambulancia del Sabor',
+    ubicacion: 'Av. Flavio Reyes y Av. 24, altos Ambulancia del Sabor',
+    ciudad: 'Manta',
+  },
+  {
+    key: 'INEPACA',
+    nombre: 'Pantalla Inepaca',
+    ubicacion: 'Av. Malecón y Av. La Cultura, sector Inepaca',
+    ciudad: 'Manta',
+  },
+  {
+    key: 'CUATRO_DE_NOVIEMBRE',
+    nombre: 'Pantalla 4 de Noviembre',
+    ubicacion: 'Av. 4 de Noviembre, a 200 m de C.C. Paseo Shopping',
+    ciudad: 'Manta',
+  },
+  {
+    key: 'BARBASQUILLO',
+    nombre: 'Pantalla Barbasquillo',
+    ubicacion: 'Av. Barbasquillo diagonal a Todo el Asador',
+    ciudad: 'Manta',
+  },
+  {
+    key: 'ESPIGON',
+    nombre: 'Pantalla paso peatonal sector Espigón',
+    ubicacion: 'Cara que mira al Mega Parque Agustín Intriago',
+    ciudad: 'Manta',
+  },
+  {
+    key: 'PARQUE_DE_LA_MADRE',
+    nombre: 'Pantalla paso peatonal Parque de la Madre',
+    ubicacion: 'Cara que mira al parque central',
+    ciudad: 'Manta',
+  },
+  {
+    key: 'TROYA',
+    nombre: 'Pantalla Troya',
+    ubicacion: 'Av. Ascario Paz diagonal a Vallejos Araujo',
+    ciudad: 'Manta',
+  },
+  {
+    key: 'RUTA_DEL_SPONDYLUS',
+    nombre: 'Pantalla Ruta del Spondylus',
+    ubicacion: 'Ruta del Spondylus, sector Manta Beach',
+    ciudad: 'Manta',
+  },
+  {
+    key: 'PORTOVIEJO',
+    nombre: 'Pantalla Portoviejo',
+    ubicacion: 'Av. América y Manabí, altos de la esquina de Ales, diagonal Banco del Pacífico',
+    ciudad: 'Portoviejo',
+  },
+  {
+    key: 'AEROPUERTO_CUENCA_PREEMBARQUE',
+    nombre: 'Aeropuerto Mariscal La Mar — Preembarque',
+    ubicacion: 'Dentro del aeropuerto Mariscal La Mar, sección preembarque',
+    ciudad: 'Cuenca',
+  },
+  {
+    key: 'AEROPUERTO_CUENCA_ARRIBO',
+    nombre: 'Aeropuerto Mariscal La Mar — Arribo de pasajeros',
+    ubicacion: 'Dentro del aeropuerto Mariscal La Mar, sección arribo de pasajeros',
+    ciudad: 'Cuenca',
+  },
+];

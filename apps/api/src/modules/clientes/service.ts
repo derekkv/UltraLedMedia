@@ -34,10 +34,10 @@ export interface ClienteDto {
   personaContacto: string | null;
   telefonoWhatsapp: string | null;
   emailAccesoEnVivo: string | null;
-  queDeseaPublicitar: string | null;
   tieneMaterial: MaterialPublicidad;
+  reproduccionesMensuales: number;
+  reproduccionesDiarias: number;
   costoDisenoExtra: number | null;
-  textoPantalla: string | null;
   duracionSpot: DuracionSpot;
   pantallasAsignadas: string | null;
   ubicacionPantallas: string | null;
@@ -45,7 +45,6 @@ export interface ClienteDto {
   fechaVencimiento: string;
   planContratado: PlanContratado;
   valorPlan: number;
-  reproduccionesDiarias: number;
   diaPagoMensual: number;
   modalidadPago: ModalidadPago;
   facturaCon: FacturaCon;
@@ -84,10 +83,10 @@ function toDto(c: ClienteRow): ClienteDto {
     personaContacto: c.personaContacto,
     telefonoWhatsapp: c.telefonoWhatsapp,
     emailAccesoEnVivo: c.emailAccesoEnVivo,
-    queDeseaPublicitar: c.queDeseaPublicitar,
     tieneMaterial: c.tieneMaterial,
+    reproduccionesMensuales: c.reproduccionesMensuales,
+    reproduccionesDiarias: c.reproduccionesDiarias,
     costoDisenoExtra: c.costoDisenoExtra === null ? null : Number(c.costoDisenoExtra),
-    textoPantalla: c.textoPantalla,
     duracionSpot: c.duracionSpot,
     pantallasAsignadas: c.pantallasAsignadas,
     ubicacionPantallas: c.ubicacionPantallas,
@@ -95,7 +94,6 @@ function toDto(c: ClienteRow): ClienteDto {
     fechaVencimiento: toDateString(c.fechaVencimiento),
     planContratado: c.planContratado,
     valorPlan: Number(c.valorPlan),
-    reproduccionesDiarias: c.reproduccionesDiarias,
     diaPagoMensual: c.diaPagoMensual,
     modalidadPago: c.modalidadPago,
     facturaCon: c.facturaCon,
@@ -128,10 +126,10 @@ function toWriteData(input: ClienteCreateInput) {
     personaContacto: input.personaContacto ?? null,
     telefonoWhatsapp: input.telefonoWhatsapp ?? null,
     emailAccesoEnVivo: input.emailAccesoEnVivo ?? null,
-    queDeseaPublicitar: input.queDeseaPublicitar ?? null,
     tieneMaterial: input.tieneMaterial,
+    reproduccionesMensuales: input.reproduccionesMensuales,
+    reproduccionesDiarias: input.reproduccionesDiarias,
     costoDisenoExtra: input.costoDisenoExtra ?? null,
-    textoPantalla: input.textoPantalla ?? null,
     duracionSpot: input.duracionSpot,
     pantallasAsignadas: input.pantallasAsignadas ?? null,
     ubicacionPantallas: input.ubicacionPantallas ?? null,
@@ -139,7 +137,6 @@ function toWriteData(input: ClienteCreateInput) {
     fechaVencimiento: toDbDate(input.fechaVencimiento),
     planContratado: input.planContratado,
     valorPlan: new Prisma.Decimal(input.valorPlan),
-    reproduccionesDiarias: input.reproduccionesDiarias,
     diaPagoMensual: input.diaPagoMensual,
     modalidadPago: input.modalidadPago,
     facturaCon: input.facturaCon,

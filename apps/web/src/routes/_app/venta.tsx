@@ -14,8 +14,10 @@ import {
   PLANES_CONTRATADOS,
   MODALIDADES_PAGO,
   FACTURA_CON,
+  PANTALLAS,
   permissionKey,
   type ClienteEstado,
+  type PantallaCatalogo,
 } from '@ultraled/shared';
 import { api, ApiException } from '@/lib/api';
 import { meQueryOptions } from '@/lib/auth';
@@ -132,10 +134,10 @@ interface ClienteFormValues {
   personaContacto: string;
   telefonoWhatsapp: string;
   emailAccesoEnVivo: string;
-  queDeseaPublicitar: string;
   tieneMaterial: string;
+  reproduccionesMensuales: number;
+  reproduccionesDiarias: number;
   costoDisenoExtra?: number;
-  textoPantalla: string;
   duracionSpot: string;
   pantallasAsignadas: string;
   ubicacionPantallas: string;
@@ -143,7 +145,6 @@ interface ClienteFormValues {
   fechaVencimiento: string;
   planContratado: string;
   valorPlan: number;
-  reproduccionesDiarias: number;
   diaPagoMensual: number;
   modalidadPago: string;
   facturaCon: string;
@@ -164,9 +165,7 @@ const EMPTY_FORM: DefaultValues<ClienteFormValues> = {
   personaContacto: '',
   telefonoWhatsapp: '',
   emailAccesoEnVivo: '',
-  queDeseaPublicitar: '',
   tieneMaterial: '',
-  textoPantalla: '',
   duracionSpot: '',
   pantallasAsignadas: '',
   ubicacionPantallas: '',
@@ -193,10 +192,10 @@ function clienteToForm(c: Cliente): DefaultValues<ClienteFormValues> {
     personaContacto: c.personaContacto ?? '',
     telefonoWhatsapp: c.telefonoWhatsapp ?? '',
     emailAccesoEnVivo: c.emailAccesoEnVivo ?? '',
-    queDeseaPublicitar: c.queDeseaPublicitar ?? '',
     tieneMaterial: c.tieneMaterial,
+    reproduccionesMensuales: c.reproduccionesMensuales,
+    reproduccionesDiarias: c.reproduccionesDiarias,
     costoDisenoExtra: c.costoDisenoExtra ?? undefined,
-    textoPantalla: c.textoPantalla ?? '',
     duracionSpot: c.duracionSpot,
     pantallasAsignadas: c.pantallasAsignadas ?? '',
     ubicacionPantallas: c.ubicacionPantallas ?? '',
@@ -204,7 +203,6 @@ function clienteToForm(c: Cliente): DefaultValues<ClienteFormValues> {
     fechaVencimiento: c.fechaVencimiento,
     planContratado: c.planContratado,
     valorPlan: c.valorPlan,
-    reproduccionesDiarias: c.reproduccionesDiarias,
     diaPagoMensual: c.diaPagoMensual,
     modalidadPago: c.modalidadPago,
     facturaCon: c.facturaCon,
@@ -591,6 +589,7 @@ function ClienteFormModal({
     handleSubmit,
     reset,
     watch,
+    setValue,
     formState: { errors, isDirty },
   } = useForm<ClienteFormValues>({
     resolver: zodResolver(clienteCreateSchema) as unknown as Resolver<ClienteFormValues>,
@@ -643,6 +642,8 @@ function ClienteFormModal({
 
   const grupo = watch('grupoComercial');
   const material = watch('tieneMaterial');
+  const pantallasValue = watch('pantallasAsignadas');
+  const ubicacionValue = watch('ubicacionPantallas');
   const disabled = readOnly;
 
   const title = isEdit ? (readOnly ? 'Ficha del cliente' : 'Editar cliente') : 'Nuevo cliente';
@@ -747,15 +748,44 @@ function ClienteFormModal({
             </Section>
 
             <Section n="B" title="Información de la publicidad">
-              <Field label="¿Qué desea publicitar?" error={errors.queDeseaPublicitar?.message}>
-                <Input {...register('queDeseaPublicitar')} disabled={disabled} />
-              </Field>
               <Field label="Material *" error={errors.tieneMaterial?.message}>
                 <select {...register('tieneMaterial')} disabled={disabled} className={SELECT_CLASS}>
                   <option value="">Selecciona…</option>
                   {MATERIALES_PUBLICIDAD.map((m) => (
                     <option key={m} value={m}>
                       {MATERIAL_LABELS[m]}
+                    </option>
+                  ))}
+                </select>
+              </Field>
+              <Field
+                label="Reproducciones mensuales *"
+                error={errors.reproduccionesMensuales?.message}
+              >
+                <Input
+                  type="number"
+                  min="0"
+                  {...register('reproduccionesMensuales', { valueAsNumber: true })}
+                  disabled={disabled}
+                />
+              </Field>
+              <Field
+                label="Reproducciones diarias *"
+                error={errors.reproduccionesDiarias?.message}
+              >
+                <Input
+                  type="number"
+                  min="0"
+                  {...register('reproduccionesDiarias', { valueAsNumber: true })}
+                  disabled={disabled}
+                />
+              </Field>
+              <Field label="Duración del spot *" error={errors.duracionSpot?.message}>
+                <select {...register('duracionSpot')} disabled={disabled} className={SELECT_CLASS}>
+                  <option value="">Selecciona…</option>
+                  {DURACIONES_SPOT.map((d) => (
+                    <option key={d} value={d}>
+                      {DURACION_LABELS[d]}
                     </option>
                   ))}
                 </select>
@@ -771,28 +801,31 @@ function ClienteFormModal({
                   />
                 </Field>
               )}
-              <Field label="Texto exacto para la pantalla" error={errors.textoPantalla?.message}>
-                <Input {...register('textoPantalla')} disabled={disabled} />
-              </Field>
-              <Field label="Duración del spot *" error={errors.duracionSpot?.message}>
-                <select {...register('duracionSpot')} disabled={disabled} className={SELECT_CLASS}>
-                  <option value="">Selecciona…</option>
-                  {DURACIONES_SPOT.map((d) => (
-                    <option key={d} value={d}>
-                      {DURACION_LABELS[d]}
-                    </option>
-                  ))}
-                </select>
-              </Field>
             </Section>
 
             <Section n="C" title="Plan y vigencia del contrato">
-              <Field label="Pantalla(s) asignada(s)" error={errors.pantallasAsignadas?.message}>
-                <Input {...register('pantallasAsignadas')} disabled={disabled} />
+              <Field label="Pantalla(s) asignada(s)" error={errors.pantallasAsignadas?.message} full>
+                <input type="hidden" {...register('pantallasAsignadas')} />
+                <input type="hidden" {...register('ubicacionPantallas')} />
+                <PantallasPicker
+                  value={pantallasValue ?? ''}
+                  disabled={disabled}
+                  onChange={(pantallas, ubicaciones) => {
+                    setValue('pantallasAsignadas', pantallas, {
+                      shouldDirty: true,
+                      shouldValidate: true,
+                    });
+                    setValue('ubicacionPantallas', ubicaciones, { shouldDirty: true });
+                  }}
+                />
               </Field>
-              <Field label="Ubicación" error={errors.ubicacionPantallas?.message}>
-                <Input {...register('ubicacionPantallas')} disabled={disabled} />
-              </Field>
+              {ubicacionValue && (
+                <Field label="Ubicación" full>
+                  <p className="rounded-md bg-surface-2 px-3 py-2 text-sm text-foreground-secondary">
+                    {ubicacionValue}
+                  </p>
+                </Field>
+              )}
               <Field label="Fecha de inicio *" error={errors.fechaInicio?.message}>
                 <Input type="date" {...register('fechaInicio')} disabled={disabled} />
               </Field>
@@ -815,17 +848,6 @@ function ClienteFormModal({
                   step="0.01"
                   min="0"
                   {...register('valorPlan', { valueAsNumber: true })}
-                  disabled={disabled}
-                />
-              </Field>
-              <Field
-                label="Reproducciones diarias garantizadas *"
-                error={errors.reproduccionesDiarias?.message}
-              >
-                <Input
-                  type="number"
-                  min="0"
-                  {...register('reproduccionesDiarias', { valueAsNumber: true })}
                   disabled={disabled}
                 />
               </Field>
@@ -952,6 +974,109 @@ function Field({
       <Label>{label}</Label>
       {children}
       {error && <p className="text-xs text-destructive">{error}</p>}
+    </div>
+  );
+}
+
+/* -------------------------------------------------------------------------- */
+/* Selector de pantallas (catálogo con ubicación fija)                        */
+/* -------------------------------------------------------------------------- */
+
+function PantallasPicker({
+  value,
+  disabled,
+  onChange,
+}: {
+  value: string;
+  disabled: boolean;
+  onChange: (pantallas: string, ubicaciones: string) => void;
+}): React.ReactElement {
+  const selected = React.useMemo(
+    () =>
+      new Set(
+        value
+          ? value
+              .split(',')
+              .map((s) => s.trim())
+              .filter(Boolean)
+          : [],
+      ),
+    [value],
+  );
+
+  const ciudades = React.useMemo(() => {
+    const map = new Map<string, PantallaCatalogo[]>();
+    for (const p of PANTALLAS) {
+      const arr = map.get(p.ciudad) ?? [];
+      arr.push(p);
+      map.set(p.ciudad, arr);
+    }
+    return Array.from(map.entries());
+  }, []);
+
+  const toggle = (nombre: string): void => {
+    const next = new Set(selected);
+    if (next.has(nombre)) next.delete(nombre);
+    else next.add(nombre);
+    const elegidas = PANTALLAS.filter((p) => next.has(p.nombre));
+    onChange(
+      elegidas.map((p) => p.nombre).join(', '),
+      elegidas.map((p) => p.ubicacion).join(' · '),
+    );
+  };
+
+  // Solo lectura: mostrar únicamente las pantallas seleccionadas.
+  if (disabled) {
+    const elegidas = PANTALLAS.filter((p) => selected.has(p.nombre));
+    if (elegidas.length === 0) {
+      return <p className="text-xs text-muted-foreground">Sin pantallas asignadas.</p>;
+    }
+    return (
+      <ul className="flex flex-col gap-1.5">
+        {elegidas.map((p) => (
+          <li key={p.key} className="rounded-lg bg-surface-2 px-3 py-2">
+            <span className="block text-sm font-medium text-foreground">{p.nombre}</span>
+            <span className="block text-xs text-muted-foreground">{p.ubicacion}</span>
+          </li>
+        ))}
+      </ul>
+    );
+  }
+
+  return (
+    <div className="rounded-lg border border-border p-1">
+      <div className="max-h-56 overflow-y-auto no-scrollbar">
+        {ciudades.map(([ciudad, pantallas]) => (
+          <div key={ciudad} className="px-1 py-1">
+            <p className="px-2 py-1 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+              {ciudad}
+            </p>
+            {pantallas.map((p) => {
+              const checked = selected.has(p.nombre);
+              return (
+                <label
+                  key={p.key}
+                  className={cn(
+                    'flex cursor-pointer items-start gap-2.5 rounded-md px-2 py-1.5 transition-colors hover:bg-surface-2',
+                    checked && 'bg-primary-soft',
+                  )}
+                >
+                  <input
+                    type="checkbox"
+                    checked={checked}
+                    onChange={() => toggle(p.nombre)}
+                    className="mt-0.5 size-4 shrink-0 accent-primary"
+                  />
+                  <span className="min-w-0">
+                    <span className="block text-sm font-medium text-foreground">{p.nombre}</span>
+                    <span className="block text-xs text-muted-foreground">{p.ubicacion}</span>
+                  </span>
+                </label>
+              );
+            })}
+          </div>
+        ))}
+      </div>
     </div>
   );
 }

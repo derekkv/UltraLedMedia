@@ -101,32 +101,38 @@ const clienteObject = z.object({
   ),
 
   // B. Información de la publicidad
-  queDeseaPublicitar: optionalText(500),
   tieneMaterial: z.enum(MATERIALES_PUBLICIDAD),
+  reproduccionesMensuales: z.preprocess(
+    emptyToUndefined,
+    z
+      .number({ message: 'Las reproducciones mensuales son requeridas' })
+      .int('Debe ser un entero')
+      .min(0)
+      .max(1_000_000),
+  ),
+  reproduccionesDiarias: z.preprocess(
+    emptyToUndefined,
+    z
+      .number({ message: 'Las reproducciones diarias son requeridas' })
+      .int('Debe ser un entero')
+      .min(0)
+      .max(100_000),
+  ),
   costoDisenoExtra: z.preprocess(
     emptyToUndefined,
     z.number().min(0, 'Debe ser ≥ 0').max(9_999_999).optional(),
   ),
-  textoPantalla: optionalText(500),
   duracionSpot: z.enum(DURACIONES_SPOT),
 
   // C. Plan y vigencia del contrato
-  pantallasAsignadas: optionalText(200),
-  ubicacionPantallas: optionalText(200),
+  pantallasAsignadas: optionalText(1000),
+  ubicacionPantallas: optionalText(2000),
   fechaInicio: fechaSchema,
   fechaVencimiento: fechaSchema,
   planContratado: z.enum(PLANES_CONTRATADOS),
   valorPlan: z.preprocess(
     emptyToUndefined,
     z.number({ message: 'El valor del plan es requerido' }).min(0, 'Debe ser ≥ 0').max(9_999_999),
-  ),
-  reproduccionesDiarias: z.preprocess(
-    emptyToUndefined,
-    z
-      .number({ message: 'Las reproducciones son requeridas' })
-      .int('Debe ser un entero')
-      .min(0)
-      .max(100_000),
   ),
 
   // D. Información de pagos mensuales

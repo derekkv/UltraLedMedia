@@ -24,10 +24,10 @@ export interface Cliente {
   personaContacto: string | null;
   telefonoWhatsapp: string | null;
   emailAccesoEnVivo: string | null;
-  queDeseaPublicitar: string | null;
   tieneMaterial: MaterialPublicidad;
+  reproduccionesMensuales: number;
+  reproduccionesDiarias: number;
   costoDisenoExtra: number | null;
-  textoPantalla: string | null;
   duracionSpot: DuracionSpot;
   pantallasAsignadas: string | null;
   ubicacionPantallas: string | null;
@@ -35,7 +35,6 @@ export interface Cliente {
   fechaVencimiento: string;
   planContratado: PlanContratado;
   valorPlan: number;
-  reproduccionesDiarias: number;
   diaPagoMensual: number;
   modalidadPago: ModalidadPago;
   facturaCon: FacturaCon;

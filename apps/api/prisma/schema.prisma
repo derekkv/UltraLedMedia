@@ -205,11 +205,11 @@ model Cliente {
   emailAccesoEnVivo  String?        @map("email_acceso_en_vivo")
 
   // B. Información de la publicidad
-  queDeseaPublicitar String?            @map("que_desea_publicitar")
-  tieneMaterial      MaterialPublicidad @map("tiene_material")
-  costoDisenoExtra   Decimal?           @map("costo_diseno_extra") @db.Decimal(12, 2)
-  textoPantalla      String?            @map("texto_pantalla")
-  duracionSpot       DuracionSpot       @map("duracion_spot")
+  tieneMaterial         MaterialPublicidad @map("tiene_material")
+  reproduccionesMensuales Int              @map("reproducciones_mensuales")
+  reproduccionesDiarias Int                @map("reproducciones_diarias")
+  costoDisenoExtra      Decimal?           @map("costo_diseno_extra") @db.Decimal(12, 2)
+  duracionSpot          DuracionSpot       @map("duracion_spot")
 
   // C. Plan y vigencia del contrato
   pantallasAsignadas    String?        @map("pantallas_asignadas")
@@ -218,7 +218,6 @@ model Cliente {
   fechaVencimiento      DateTime       @map("fecha_vencimiento") @db.Date
   planContratado        PlanContratado @map("plan_contratado")
   valorPlan             Decimal        @map("valor_plan") @db.Decimal(12, 2)
-  reproduccionesDiarias Int            @map("reproducciones_diarias")
 
   // D. Información de pagos mensuales
   diaPagoMensual Int           @map("dia_pago_mensual")
