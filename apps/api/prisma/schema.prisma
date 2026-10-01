@@ -35,6 +35,8 @@ enum GrupoComercial {
   SERVICIOS_PROFESIONALES
   FERRETERIA_CONSTRUCCION
   EDUCACION
+  VEHICULOS_LIVIANOS
+  VEHICULOS_PESADOS
   OTRO
 }
 
@@ -234,8 +236,30 @@ model Cliente {
   createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
 
+  archivos ClienteArchivo[]
+
   @@index([estado])
   @@index([createdAt])
   @@index([razonSocial])
   @@map("clientes")
+}
+
+/// Archivo adjunto a la ficha de un cliente (imágenes, videos, PDF, documentos).
+/// El binario vive en disco (UPLOADS_DIR/clientes/<clienteId>/<storedName>);
+/// aquí solo se guardan los metadatos para listar, descargar y auditar.
+model ClienteArchivo {
+  id         String @id @default(uuid()) @db.Uuid
+  clienteId  String @map("cliente_id") @db.Uuid
+  nombre     String // nombre original del archivo (visible al usuario)
+  storedName String @map("stored_name") // nombre único en disco
+  mimeType   String @map("mime_type")
+  tamano     Int // tamaño en bytes
+
+  createdById String?  @map("created_by_id") @db.Uuid
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  cliente Cliente @relation(fields: [clienteId], references: [id], onDelete: Cascade)
+
+  @@index([clienteId])
+  @@map("cliente_archivos")
 }

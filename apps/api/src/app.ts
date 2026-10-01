@@ -8,6 +8,7 @@ import fastifyCsrf from '@fastify/csrf-protection';
 import fastifySwagger from '@fastify/swagger';
 import fastifySwaggerUi from '@fastify/swagger-ui';
 import fastifyWebsocket from '@fastify/websocket';
+import fastifyMultipart from '@fastify/multipart';
 import {
   serializerCompiler,
   validatorCompiler,
@@ -92,6 +93,14 @@ export async function buildApp(): Promise<FastifyInstance> {
 
   // WebSocket (tiempo real)
   await app.register(fastifyWebsocket);
+
+  // Subida de archivos (multipart) para adjuntos de clientes.
+  await app.register(fastifyMultipart, {
+    limits: {
+      fileSize: env.UPLOAD_MAX_BYTES,
+      files: 10,
+    },
+  });
 
   // Rutas versionadas
   await app.register(

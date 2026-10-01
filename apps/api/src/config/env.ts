@@ -14,6 +14,11 @@ const EnvSchema = z.object({
 
   CORS_ORIGINS: z.string().default('http://localhost:5173'),
 
+  // Almacenamiento de archivos adjuntos (clientes). Ruta en disco (relativa o absoluta).
+  UPLOADS_DIR: z.string().default('uploads'),
+  // Tamaño máximo por archivo subido, en bytes (por defecto 25 MB).
+  UPLOAD_MAX_BYTES: z.coerce.number().int().positive().default(25 * 1024 * 1024),
+
   // Solo usados por el seed; opcionales en runtime de la API.
   ADMIN_EMAIL: z.string().optional(),
   ADMIN_PASSWORD: z.string().optional(),

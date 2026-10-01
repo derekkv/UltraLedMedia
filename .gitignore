@@ -28,6 +28,10 @@ coverage/
 # Prisma
 apps/api/prisma/*.db
 
+# Archivos subidos (adjuntos de clientes)
+uploads/
+apps/api/uploads/
+
 # Editor / OS
 .DS_Store
 .idea/

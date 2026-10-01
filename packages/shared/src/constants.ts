@@ -34,6 +34,8 @@ export const GRUPOS_COMERCIALES = [
   'SERVICIOS_PROFESIONALES',
   'FERRETERIA_CONSTRUCCION',
   'EDUCACION',
+  'VEHICULOS_LIVIANOS',
+  'VEHICULOS_PESADOS',
   'OTRO',
 ] as const;
 export type GrupoComercial = (typeof GRUPOS_COMERCIALES)[number];

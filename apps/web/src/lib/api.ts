@@ -69,9 +69,42 @@ async function request<T>(method: Method, path: string, body?: unknown): Promise
   return data as T;
 }
 
+/**
+ * Envía `FormData` (p. ej. subida de archivos) con token CSRF. No fija
+ * `Content-Type`: el navegador agrega el boundary de multipart automáticamente.
+ */
+async function upload<T>(path: string, formData: FormData): Promise<T> {
+  const send = async (): Promise<Response> =>
+    fetch(`${API_BASE}${path}`, {
+      method: 'POST',
+      credentials: 'include',
+      headers: { 'x-csrf-token': csrfToken ?? (await fetchCsrf()) },
+      body: formData,
+    });
+
+  let res = await send();
+  if (res.status === 403) {
+    csrfToken = null;
+    csrfToken = await fetchCsrf();
+    res = await send();
+  }
+
+  if (res.status === 204) return undefined as T;
+
+  const data: unknown = await res.json().catch(() => null);
+  if (!res.ok) {
+    const errorBody =
+      (data as { error?: ApiErrorBody })?.error ??
+      ({ code: 'UNKNOWN', message: 'Error de red' } satisfies ApiErrorBody);
+    throw new ApiException(res.status, errorBody);
+  }
+  return data as T;
+}
+
 export const api = {
   get: <T>(path: string): Promise<T> => request<T>('GET', path),
   post: <T>(path: string, body?: unknown): Promise<T> => request<T>('POST', path, body),
   patch: <T>(path: string, body?: unknown): Promise<T> => request<T>('PATCH', path, body),
   del: <T>(path: string): Promise<T> => request<T>('DELETE', path),
+  upload: <T>(path: string, formData: FormData): Promise<T> => upload<T>(path, formData),
 };

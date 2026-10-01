@@ -4,7 +4,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useForm, type DefaultValues, type Resolver } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { motion } from 'framer-motion';
-import { Pencil, Plus, Play, Pause, Trash2, Search, X, Building2 } from 'lucide-react';
+import { Pencil, Plus, Play, Pause, Trash2, Search, X, Building2, Paperclip, Upload, Download, FileText, Image as ImageIcon, File as FileIcon } from 'lucide-react';
 import {
   clienteCreateSchema,
   CLIENTE_ESTADOS,
@@ -22,8 +22,13 @@ import { meQueryOptions } from '@/lib/auth';
 import { realtime, type WsMessage } from '@/lib/ws';
 import {
   clientesQueryKey,
+  clienteArchivosQueryKey,
+  archivoUrl,
+  isImageMime,
+  formatBytes,
   formatDate,
   formatMoney,
+  ARCHIVO_ACCEPT,
   DURACION_LABELS,
   ESTADO_BADGE,
   ESTADO_LABELS,
@@ -33,6 +38,8 @@ import {
   MODALIDAD_LABELS,
   PLAN_LABELS,
   type Cliente,
+  type ClienteArchivo,
+  type ClienteArchivoListResponse,
   type ClienteListResponse,
 } from '@/lib/clientes';
 import { Card, CardContent } from '@/components/ui/card';
@@ -573,8 +580,11 @@ function ClienteFormModal({
   readOnly: boolean;
 }): React.ReactElement {
   const queryClient = useQueryClient();
+  const confirm = useConfirm();
   const isEdit = cliente !== null;
   const [estado, setEstado] = React.useState<ClienteEstado>('ACTIVO');
+  // Archivos seleccionados antes de crear el cliente (se suben tras el alta).
+  const [pendingFiles, setPendingFiles] = React.useState<File[]>([]);
 
   const {
     register,
@@ -591,10 +601,11 @@ function ClienteFormModal({
     if (!open) return;
     reset(cliente ? clienteToForm(cliente) : EMPTY_FORM);
     setEstado(cliente?.estado ?? 'ACTIVO');
+    setPendingFiles([]);
   }, [open, cliente, reset]);
 
   const mutation = useMutation({
-    mutationFn: (values: ClienteFormValues) => {
+    mutationFn: async (values: ClienteFormValues) => {
       if (cliente) {
         return api.patch<Cliente>(`/clientes/${cliente.id}`, {
           ...values,
@@ -602,10 +613,25 @@ function ClienteFormModal({
           estado,
         });
       }
-      return api.post<Cliente>('/clientes', values);
+      const saved = await api.post<Cliente>('/clientes', values);
+      // Sube los archivos adjuntados durante el alta, ya con el id del cliente.
+      if (pendingFiles.length > 0) {
+        const fd = new FormData();
+        for (const file of pendingFiles) fd.append('archivos', file, file.name);
+        try {
+          await api.upload<ClienteArchivoListResponse>(`/clientes/${saved.id}/archivos`, fd);
+        } catch (err) {
+          // El cliente ya se creó; avisamos del fallo de los adjuntos sin perder el registro.
+          toast.error(
+            errorMessage(err, 'El cliente se creó, pero no se pudieron subir algunos archivos.'),
+          );
+        }
+      }
+      return saved;
     },
     onSuccess: async (saved) => {
       await queryClient.invalidateQueries({ queryKey: clientesQueryKey });
+      await queryClient.invalidateQueries({ queryKey: clienteArchivosQueryKey(saved.id) });
       toast.success(isEdit ? 'Cambios guardados.' : `Cliente "${saved.razonSocial}" registrado.`);
       onOpenChange(false);
     },
@@ -840,6 +866,14 @@ function ClienteFormModal({
               </Field>
             </Section>
 
+            <ArchivosSection
+              clienteId={cliente?.id ?? null}
+              readOnly={readOnly}
+              pendingFiles={pendingFiles}
+              onPendingChange={setPendingFiles}
+              confirm={confirm}
+            />
+
             {!readOnly && (
               <Alert variant="info">
                 Si el cliente no paga hasta la fecha acordada, la publicidad se pausa
@@ -919,5 +953,277 @@ function Field({
       {children}
       {error && <p className="text-xs text-destructive">{error}</p>}
     </div>
+  );
+}
+
+/* -------------------------------------------------------------------------- */
+/* Sección de archivos adjuntos                                               */
+/* -------------------------------------------------------------------------- */
+
+function ArchivoThumb({ archivo, clienteId }: { archivo: ClienteArchivo; clienteId: string }): React.ReactElement {
+  if (isImageMime(archivo.mimeType)) {
+    return (
+      <img
+        src={archivoUrl(clienteId, archivo.id)}
+        alt=""
+        aria-hidden="true"
+        loading="lazy"
+        className="size-10 shrink-0 rounded-md object-cover"
+      />
+    );
+  }
+  const Icon = archivo.mimeType === 'application/pdf' ? FileText : FileIcon;
+  return (
+    <span className="grid size-10 shrink-0 place-items-center rounded-md bg-surface-2 text-muted-foreground">
+      <Icon className="size-5" aria-hidden="true" />
+    </span>
+  );
+}
+
+function ArchivosSection({
+  clienteId,
+  readOnly,
+  pendingFiles,
+  onPendingChange,
+  confirm,
+}: {
+  clienteId: string | null;
+  readOnly: boolean;
+  pendingFiles: File[];
+  onPendingChange: (files: File[]) => void;
+  confirm: ReturnType<typeof useConfirm>;
+}): React.ReactElement {
+  const queryClient = useQueryClient();
+  const inputRef = React.useRef<HTMLInputElement>(null);
+  const [dragging, setDragging] = React.useState(false);
+  const existing = clienteId !== null;
+
+  const archivosQuery = useQuery({
+    queryKey: clienteArchivosQueryKey(clienteId ?? 'nuevo'),
+    queryFn: () => api.get<ClienteArchivoListResponse>(`/clientes/${clienteId}/archivos`),
+    enabled: existing,
+  });
+
+  const uploadMutation = useMutation({
+    mutationFn: (files: File[]) => {
+      const fd = new FormData();
+      for (const f of files) fd.append('archivos', f, f.name);
+      return api.upload<ClienteArchivoListResponse>(`/clientes/${clienteId}/archivos`, fd);
+    },
+    onSuccess: async (res) => {
+      if (clienteId) {
+        await queryClient.invalidateQueries({ queryKey: clienteArchivosQueryKey(clienteId) });
+      }
+      toast.success(
+        res.items.length === 1 ? 'Archivo subido.' : `${res.items.length} archivos subidos.`,
+      );
+    },
+    onError: (err) => toast.error(errorMessage(err, 'No se pudieron subir los archivos.')),
+  });
+
+  const deleteMutation = useMutation({
+    mutationFn: (archivo: ClienteArchivo) =>
+      api.del<void>(`/clientes/${clienteId}/archivos/${archivo.id}`),
+    onSuccess: async () => {
+      if (clienteId) {
+        await queryClient.invalidateQueries({ queryKey: clienteArchivosQueryKey(clienteId) });
+      }
+      toast.success('Archivo eliminado.');
+    },
+    onError: (err) => toast.error(errorMessage(err, 'No se pudo eliminar el archivo.')),
+  });
+
+  const addFiles = (files: FileList | null): void => {
+    if (!files || files.length === 0) return;
+    const arr = Array.from(files);
+    if (existing) {
+      uploadMutation.mutate(arr);
+    } else {
+      onPendingChange([...pendingFiles, ...arr]);
+    }
+  };
+
+  const removePending = (index: number): void => {
+    onPendingChange(pendingFiles.filter((_, i) => i !== index));
+  };
+
+  const removeExisting = async (archivo: ClienteArchivo): Promise<void> => {
+    const ok = await confirm({
+      title: 'Eliminar archivo',
+      description: `Se eliminará "${archivo.nombre}" de forma permanente. Esta acción no se puede deshacer.`,
+      variant: 'destructive',
+      confirmText: 'Eliminar',
+    });
+    if (!ok) return;
+    deleteMutation.mutate(archivo);
+  };
+
+  const items = archivosQuery.data?.items ?? [];
+  const canEdit = !readOnly;
+
+  return (
+    <fieldset className="flex flex-col gap-3">
+      <legend className="mb-1 flex items-center gap-2">
+        <span className="grid size-5 place-items-center rounded bg-secondary/12 text-[11px] font-bold text-secondary">
+          E
+        </span>
+        <span className="text-sm font-semibold text-foreground">Archivos y documentos</span>
+      </legend>
+
+      {canEdit && (
+        <>
+          <input
+            ref={inputRef}
+            type="file"
+            multiple
+            accept={ARCHIVO_ACCEPT}
+            className="sr-only"
+            onChange={(e) => {
+              addFiles(e.target.files);
+              e.target.value = '';
+            }}
+          />
+          <button
+            type="button"
+            onClick={() => inputRef.current?.click()}
+            onDragOver={(e) => {
+              e.preventDefault();
+              setDragging(true);
+            }}
+            onDragLeave={() => setDragging(false)}
+            onDrop={(e) => {
+              e.preventDefault();
+              setDragging(false);
+              addFiles(e.dataTransfer.files);
+            }}
+            disabled={uploadMutation.isPending}
+            className={cn(
+              'flex w-full flex-col items-center justify-center gap-1.5 rounded-lg border border-dashed border-border px-4 py-6 text-center transition-colors hover:border-border-strong hover:bg-surface-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/40 disabled:cursor-not-allowed disabled:opacity-60',
+              dragging && 'border-primary bg-primary-soft',
+            )}
+          >
+            <span className="grid size-9 place-items-center rounded-full bg-surface-2 text-muted-foreground">
+              <Upload className="size-4" aria-hidden="true" />
+            </span>
+            <span className="text-sm font-medium text-foreground">
+              {uploadMutation.isPending ? 'Subiendo…' : 'Arrastra archivos o haz clic para subir'}
+            </span>
+            <span className="text-xs text-muted-foreground">
+              Imágenes, videos, PDF y documentos · hasta 25 MB c/u
+            </span>
+          </button>
+        </>
+      )}
+
+      {/* Archivos pendientes (alta de cliente nuevo) */}
+      {!existing && pendingFiles.length > 0 && (
+        <ul className="flex flex-col gap-1.5">
+          {pendingFiles.map((file, index) => (
+            <li
+              key={`${file.name}-${index}`}
+              className="flex items-center gap-3 rounded-lg bg-surface-2 px-3 py-2"
+            >
+              <span className="grid size-10 shrink-0 place-items-center rounded-md bg-surface-1 text-muted-foreground">
+                {file.type.startsWith('image/') ? (
+                  <ImageIcon className="size-5" aria-hidden="true" />
+                ) : (
+                  <FileIcon className="size-5" aria-hidden="true" />
+                )}
+              </span>
+              <span className="min-w-0 flex-1">
+                <span className="block truncate text-sm font-medium text-foreground">
+                  {file.name}
+                </span>
+                <span className="block text-xs text-muted-foreground tabular-nums">
+                  {formatBytes(file.size)}
+                </span>
+              </span>
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon"
+                aria-label={`Quitar ${file.name}`}
+                onClick={() => removePending(index)}
+              >
+                <X />
+              </Button>
+            </li>
+          ))}
+        </ul>
+      )}
+      {!existing && pendingFiles.length === 0 && !canEdit && (
+        <p className="text-xs text-muted-foreground">Sin archivos adjuntos.</p>
+      )}
+
+      {/* Archivos ya guardados (edición / ficha) */}
+      {existing && (
+        <>
+          {archivosQuery.isLoading ? (
+            <div className="flex flex-col gap-1.5">
+              {[0, 1].map((i) => (
+                <Skeleton key={i} className="h-14 w-full rounded-lg" />
+              ))}
+            </div>
+          ) : archivosQuery.isError ? (
+            <div className="flex items-center justify-between gap-3 rounded-lg bg-surface-2 px-3 py-2.5">
+              <p className="text-sm text-destructive">No se pudieron cargar los archivos.</p>
+              <Button type="button" variant="outline" size="sm" onClick={() => archivosQuery.refetch()}>
+                Reintentar
+              </Button>
+            </div>
+          ) : items.length === 0 ? (
+            <p className="flex items-center gap-2 text-xs text-muted-foreground">
+              <Paperclip className="size-3.5" aria-hidden="true" />
+              {canEdit ? 'Aún no hay archivos. Sube el primero arriba.' : 'Sin archivos adjuntos.'}
+            </p>
+          ) : (
+            <ul className="flex flex-col gap-1.5">
+              {items.map((archivo) => (
+                <li
+                  key={archivo.id}
+                  className="flex items-center gap-3 rounded-lg bg-surface-2 px-3 py-2"
+                >
+                  <ArchivoThumb archivo={archivo} clienteId={clienteId} />
+                  <a
+                    href={archivoUrl(clienteId, archivo.id)}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="min-w-0 flex-1 rounded focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/40"
+                  >
+                    <span className="block truncate text-sm font-medium text-foreground hover:underline">
+                      {archivo.nombre}
+                    </span>
+                    <span className="block text-xs text-muted-foreground tabular-nums">
+                      {formatBytes(archivo.tamano)}
+                    </span>
+                  </a>
+                  <a
+                    href={archivoUrl(clienteId, archivo.id, { download: true })}
+                    download={archivo.nombre}
+                    aria-label={`Descargar ${archivo.nombre}`}
+                    title="Descargar"
+                    className="grid size-9 shrink-0 place-items-center rounded-md text-muted-foreground transition-colors hover:bg-surface-1 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/40"
+                  >
+                    <Download className="size-4" aria-hidden="true" />
+                  </a>
+                  {canEdit && (
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon"
+                      aria-label={`Eliminar ${archivo.nombre}`}
+                      disabled={deleteMutation.isPending}
+                      onClick={() => void removeExisting(archivo)}
+                    >
+                      <Trash2 />
+                    </Button>
+                  )}
+                </li>
+              ))}
+            </ul>
+          )}
+        </>
+      )}
+    </fieldset>
   );
 }

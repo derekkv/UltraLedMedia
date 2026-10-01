@@ -51,8 +51,60 @@ export interface ClienteListResponse {
   nextCursor: string | null;
 }
 
+/** Archivo adjunto a un cliente (DTO de la API). */
+export interface ClienteArchivo {
+  id: string;
+  clienteId: string;
+  nombre: string;
+  mimeType: string;
+  tamano: number;
+  createdAt: string;
+}
+
+export interface ClienteArchivoListResponse {
+  items: ClienteArchivo[];
+}
+
 /** Clave de caché para la lista de clientes (prefijo para invalidar todo). */
 export const clientesQueryKey = ['clientes'] as const;
+
+/** Clave de caché para los archivos de un cliente. */
+export const clienteArchivosQueryKey = (clienteId: string): readonly unknown[] => [
+  'cliente-archivos',
+  clienteId,
+];
+
+/** URL de descarga/preview de un adjunto (same-origin, usa la cookie de sesión). */
+export function archivoUrl(
+  clienteId: string,
+  archivoId: string,
+  opts?: { download?: boolean },
+): string {
+  const base = `/api/v1/clientes/${clienteId}/archivos/${archivoId}`;
+  return opts?.download ? `${base}?download=true` : base;
+}
+
+/** ¿El tipo MIME corresponde a una imagen (para mostrar miniatura)? */
+export function isImageMime(mime: string): boolean {
+  return mime.toLowerCase().startsWith('image/');
+}
+
+/** Formatea un tamaño en bytes de forma legible (B, KB, MB…). */
+export function formatBytes(bytes: number): string {
+  if (bytes < 1024) return `${bytes} B`;
+  const units = ['KB', 'MB', 'GB'];
+  let value = bytes / 1024;
+  let i = 0;
+  while (value >= 1024 && i < units.length - 1) {
+    value /= 1024;
+    i += 1;
+  }
+  return `${value.toFixed(value < 10 ? 1 : 0)} ${units[i]}`;
+}
+
+/** `accept` del input de archivos: imágenes, video, audio, PDF y ofimática. */
+export const ARCHIVO_ACCEPT =
+  'image/*,video/*,audio/*,application/pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt,.csv,.zip';
 
 export const GRUPO_LABELS: Record<GrupoComercial, string> = {
   GASTRONOMIA: 'Gastronomía y Restaurantes',
@@ -64,6 +116,8 @@ export const GRUPO_LABELS: Record<GrupoComercial, string> = {
   SERVICIOS_PROFESIONALES: 'Servicios Profesionales',
   FERRETERIA_CONSTRUCCION: 'Ferretería / Construcción',
   EDUCACION: 'Educación',
+  VEHICULOS_LIVIANOS: 'Vehículo liviano',
+  VEHICULOS_PESADOS: 'Vehículo pesado',
   OTRO: 'Otro',
 };
 

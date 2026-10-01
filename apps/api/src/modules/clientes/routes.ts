@@ -14,6 +14,7 @@ import {
 } from '@ultraled/shared';
 import { requireAuth, requirePermission } from '../../security/rbac';
 import { audit, auditSnapshot, diffObjects } from '../../security/audit';
+import { HttpError } from '../../lib/http-error';
 import {
   createCliente,
   deleteCliente,
@@ -22,6 +23,12 @@ import {
   updateCliente,
   updateClienteEstado,
 } from './service';
+import {
+  createArchivo,
+  deleteArchivo,
+  getArchivoDownload,
+  listArchivos,
+} from './archivos.service';
 
 /** Esquema del DTO de cliente para validación/serialización de respuestas. */
 const clienteDtoSchema = z.object({
@@ -59,6 +66,16 @@ const clienteDtoSchema = z.object({
   version: z.number(),
   createdAt: z.string(),
   updatedAt: z.string(),
+});
+
+/** DTO de un archivo adjunto de cliente. */
+const archivoDtoSchema = z.object({
+  id: z.string(),
+  clienteId: z.string(),
+  nombre: z.string(),
+  mimeType: z.string(),
+  tamano: z.number(),
+  createdAt: z.string(),
 });
 
 export const clientesRoutes: FastifyPluginAsyncZod = async (app) => {
@@ -212,6 +229,120 @@ export const clientesRoutes: FastifyPluginAsyncZod = async (app) => {
         entityId: request.params.id,
         summary: `Eliminó el cliente "${before.razonSocial}" (RUC/CI ${before.rucCedula}).`,
         snapshot: auditSnapshot({ ...before }),
+      });
+      return reply.status(204).send();
+    },
+  );
+
+  /* ------------------------------------------------------------------ */
+  /* Archivos adjuntos del cliente (imágenes, videos, PDF, documentos)  */
+  /* ------------------------------------------------------------------ */
+
+  app.get(
+    '/clientes/:id/archivos',
+    {
+      preHandler: [requireAuth, requirePermission('VENTA', 'READ')],
+      schema: {
+        tags: ['clientes'],
+        summary: 'Listar archivos adjuntos del cliente',
+        params: z.object({ id: z.uuid() }),
+        response: { 200: z.object({ items: z.array(archivoDtoSchema) }) },
+      },
+    },
+    async (request) => {
+      const items = await listArchivos(request.params.id);
+      return { items };
+    },
+  );
+
+  app.post(
+    '/clientes/:id/archivos',
+    {
+      preHandler: [requireAuth, requirePermission('VENTA', 'UPDATE'), app.csrfProtection],
+      schema: {
+        tags: ['clientes'],
+        summary: 'Subir uno o más archivos adjuntos (multipart/form-data)',
+        params: z.object({ id: z.uuid() }),
+        consumes: ['multipart/form-data'],
+        response: { 201: z.object({ items: z.array(archivoDtoSchema) }) },
+      },
+    },
+    async (request, reply) => {
+      const clienteId = request.params.id;
+      const actorId = request.currentUser?.id ?? null;
+      const parts = request.files();
+      const created: Awaited<ReturnType<typeof createArchivo>>[] = [];
+
+      for await (const part of parts) {
+        const archivo = await createArchivo(
+          clienteId,
+          { filename: part.filename, mimetype: part.mimetype, file: part.file },
+          actorId,
+        );
+        created.push(archivo);
+        await audit(request, {
+          action: 'CLIENTE_ARCHIVO_UPLOADED',
+          entity: 'cliente_archivo',
+          entityId: archivo.id,
+          summary: `Adjuntó el archivo "${archivo.nombre}" al cliente.`,
+          snapshot: auditSnapshot({ ...archivo }),
+          extra: { clienteId },
+        });
+      }
+
+      if (created.length === 0) {
+        throw new HttpError(400, 'SIN_ARCHIVOS', 'No se recibió ningún archivo.');
+      }
+
+      return reply.status(201).send({ items: created });
+    },
+  );
+
+  app.get(
+    '/clientes/:id/archivos/:archivoId',
+    {
+      preHandler: [requireAuth, requirePermission('VENTA', 'READ')],
+      schema: {
+        tags: ['clientes'],
+        summary: 'Descargar / previsualizar un archivo adjunto',
+        params: z.object({ id: z.uuid(), archivoId: z.uuid() }),
+        querystring: z.object({ download: z.coerce.boolean().optional() }),
+      },
+    },
+    async (request, reply) => {
+      const { meta, stream } = await getArchivoDownload(request.params.id, request.params.archivoId);
+      const disposition = request.query.download ? 'attachment' : 'inline';
+      const safeName = meta.nombre.replace(/["\\\r\n]/g, '_');
+      reply.header('Content-Type', meta.mimeType);
+      reply.header('Content-Length', meta.tamano);
+      reply.header(
+        'Content-Disposition',
+        `${disposition}; filename="${safeName}"; filename*=UTF-8''${encodeURIComponent(meta.nombre)}`,
+      );
+      reply.header('Cache-Control', 'private, max-age=0, must-revalidate');
+      return reply.send(stream);
+    },
+  );
+
+  app.delete(
+    '/clientes/:id/archivos/:archivoId',
+    {
+      preHandler: [requireAuth, requirePermission('VENTA', 'UPDATE'), app.csrfProtection],
+      schema: {
+        tags: ['clientes'],
+        summary: 'Eliminar un archivo adjunto',
+        params: z.object({ id: z.uuid(), archivoId: z.uuid() }),
+      },
+    },
+    async (request, reply) => {
+      const archivo = await deleteArchivo(request.params.id, request.params.archivoId);
+      await audit(request, {
+        action: 'CLIENTE_ARCHIVO_DELETED',
+        entity: 'cliente_archivo',
+        entityId: archivo.id,
+        summary: `Eliminó el archivo "${archivo.nombre}" del cliente.`,
+        snapshot: auditSnapshot({ ...archivo }),
+        extra: { clienteId: request.params.id },
       });
       return reply.status(204).send();
     },
