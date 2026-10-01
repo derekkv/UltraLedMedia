@@ -3,8 +3,8 @@ import { createFileRoute, redirect } from '@tanstack/react-router';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useForm, type DefaultValues, type Resolver } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { motion } from 'framer-motion';
-import { Pencil, Plus, Play, Pause, Trash2, Search, X, Building2, Paperclip, Upload, Download, FileText, Image as ImageIcon, File as FileIcon } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { Pencil, Plus, Play, Pause, Trash2, Search, X, Building2, Paperclip, Upload, Download, FileText, Image as ImageIcon, File as FileIcon, ChevronDown, Check, MonitorPlay } from 'lucide-react';
 import {
   clienteCreateSchema,
   CLIENTE_ESTADOS,
@@ -54,7 +54,7 @@ import { Alert } from '@/components/ui/alert';
 import { Modal, ModalClose, ModalTitle } from '@/components/ui/modal';
 import { useConfirm } from '@/providers/confirm';
 import { toast } from '@/components/toaster';
-import { staggerContainer, staggerItem } from '@/lib/motion';
+import { staggerContainer, staggerItem, EASE_OUT } from '@/lib/motion';
 import { cn } from '@/lib/utils';
 
 export const Route = createFileRoute('/_app/venta')({
@@ -991,6 +991,9 @@ function PantallasPicker({
   disabled: boolean;
   onChange: (pantallas: string, ubicaciones: string) => void;
 }): React.ReactElement {
+  const [open, setOpen] = React.useState(false);
+  const wrapRef = React.useRef<HTMLDivElement>(null);
+
   const selected = React.useMemo(
     () =>
       new Set(
@@ -1014,29 +1017,59 @@ function PantallasPicker({
     return Array.from(map.entries());
   }, []);
 
+  const elegidas = React.useMemo(
+    () => PANTALLAS.filter((p) => selected.has(p.nombre)),
+    [selected],
+  );
+
+  // Cerrar al hacer clic fuera o con Escape.
+  React.useEffect(() => {
+    if (!open) return;
+    const onClick = (e: MouseEvent): void => {
+      if (wrapRef.current && !wrapRef.current.contains(e.target as Node)) setOpen(false);
+    };
+    const onKey = (e: KeyboardEvent): void => {
+      if (e.key === 'Escape') setOpen(false);
+    };
+    document.addEventListener('mousedown', onClick);
+    document.addEventListener('keydown', onKey);
+    return () => {
+      document.removeEventListener('mousedown', onClick);
+      document.removeEventListener('keydown', onKey);
+    };
+  }, [open]);
+
   const toggle = (nombre: string): void => {
     const next = new Set(selected);
     if (next.has(nombre)) next.delete(nombre);
     else next.add(nombre);
-    const elegidas = PANTALLAS.filter((p) => next.has(p.nombre));
+    const picks = PANTALLAS.filter((p) => next.has(p.nombre));
     onChange(
-      elegidas.map((p) => p.nombre).join(', '),
-      elegidas.map((p) => p.ubicacion).join(' · '),
+      picks.map((p) => p.nombre).join(', '),
+      picks
+        .map((p) => (p.ubicacion ? `${p.ciudad} - ${p.nombre} (${p.ubicacion})` : `${p.ciudad} - ${p.nombre}`))
+        .join(' · '),
     );
   };
 
-  // Solo lectura: mostrar únicamente las pantallas seleccionadas.
+  // Solo lectura: solo las seleccionadas.
   if (disabled) {
-    const elegidas = PANTALLAS.filter((p) => selected.has(p.nombre));
     if (elegidas.length === 0) {
       return <p className="text-xs text-muted-foreground">Sin pantallas asignadas.</p>;
     }
     return (
       <ul className="flex flex-col gap-1.5">
         {elegidas.map((p) => (
-          <li key={p.key} className="rounded-lg bg-surface-2 px-3 py-2">
-            <span className="block text-sm font-medium text-foreground">{p.nombre}</span>
-            <span className="block text-xs text-muted-foreground">{p.ubicacion}</span>
+          <li key={p.key} className="flex items-center gap-2 rounded-lg bg-surface-2 px-3 py-2">
+            <MonitorPlay className="size-4 shrink-0 text-muted-foreground" aria-hidden="true" />
+            <span className="min-w-0">
+              <span className="block truncate text-sm font-medium text-foreground">
+                {p.ciudad} · {p.nombre}
+              </span>
+              {p.ubicacion && (
+                <span className="block truncate text-xs text-muted-foreground">{p.ubicacion}</span>
+              )}
+            </span>
           </li>
         ))}
       </ul>
@@ -1044,39 +1077,109 @@ function PantallasPicker({
   }
 
   return (
-    <div className="rounded-lg border border-border p-1">
-      <div className="max-h-56 overflow-y-auto no-scrollbar">
-        {ciudades.map(([ciudad, pantallas]) => (
-          <div key={ciudad} className="px-1 py-1">
-            <p className="px-2 py-1 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
-              {ciudad}
-            </p>
-            {pantallas.map((p) => {
-              const checked = selected.has(p.nombre);
-              return (
-                <label
-                  key={p.key}
-                  className={cn(
-                    'flex cursor-pointer items-start gap-2.5 rounded-md px-2 py-1.5 transition-colors hover:bg-surface-2',
-                    checked && 'bg-primary-soft',
-                  )}
+    <div ref={wrapRef} className="relative">
+      {/* Disparador */}
+      <button
+        type="button"
+        onClick={() => setOpen((v) => !v)}
+        aria-haspopup="listbox"
+        aria-expanded={open}
+        className={cn(
+          'flex min-h-10 w-full items-center justify-between gap-2 rounded-md bg-input px-3 py-1.5 text-left text-sm outline-none transition-[border-color,box-shadow] focus-visible:ring-2 focus-visible:ring-ring/40',
+          open && 'ring-2 ring-ring/40',
+        )}
+      >
+        {elegidas.length === 0 ? (
+          <span className="text-muted-foreground">Selecciona una o más pantallas…</span>
+        ) : (
+          <span className="flex flex-wrap gap-1.5 py-0.5">
+            {elegidas.map((p) => (
+              <span
+                key={p.key}
+                className="inline-flex items-center gap-1 rounded-full bg-primary-soft px-2 py-0.5 text-xs font-medium text-foreground"
+              >
+                {p.nombre}
+                <button
+                  type="button"
+                  aria-label={`Quitar ${p.nombre}`}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    toggle(p.nombre);
+                  }}
+                  className="grid size-4 place-items-center rounded-full text-muted-foreground hover:text-foreground"
                 >
-                  <input
-                    type="checkbox"
-                    checked={checked}
-                    onChange={() => toggle(p.nombre)}
-                    className="mt-0.5 size-4 shrink-0 accent-primary"
-                  />
-                  <span className="min-w-0">
-                    <span className="block text-sm font-medium text-foreground">{p.nombre}</span>
-                    <span className="block text-xs text-muted-foreground">{p.ubicacion}</span>
-                  </span>
-                </label>
-              );
-            })}
-          </div>
-        ))}
-      </div>
+                  <X className="size-3" />
+                </button>
+              </span>
+            ))}
+          </span>
+        )}
+        <ChevronDown
+          className={cn(
+            'size-4 shrink-0 text-muted-foreground transition-transform',
+            open && 'rotate-180',
+          )}
+          aria-hidden="true"
+        />
+      </button>
+
+      {/* Panel */}
+      <AnimatePresence>
+        {open && (
+          <motion.div
+            initial={{ opacity: 0, y: -4 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -4 }}
+            transition={{ duration: 0.16, ease: EASE_OUT }}
+            className="absolute left-0 right-0 top-[calc(100%+6px)] z-50 overflow-hidden rounded-lg bg-popover elevated-2"
+          >
+            <div className="max-h-64 overflow-y-auto no-scrollbar p-1.5">
+              {ciudades.map(([ciudad, pantallas]) => (
+                <div key={ciudad} className="mb-1 last:mb-0">
+                  <p className="px-2 py-1 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+                    {ciudad}
+                  </p>
+                  {pantallas.map((p) => {
+                    const checked = selected.has(p.nombre);
+                    return (
+                      <button
+                        type="button"
+                        key={p.key}
+                        onClick={() => toggle(p.nombre)}
+                        className={cn(
+                          'flex w-full items-center gap-2.5 rounded-md px-2 py-2 text-left transition-colors hover:bg-surface-2',
+                          checked && 'bg-primary-soft',
+                        )}
+                      >
+                        <span
+                          className={cn(
+                            'grid size-4 shrink-0 place-items-center rounded border transition-colors',
+                            checked
+                              ? 'border-primary bg-primary text-primary-foreground'
+                              : 'border-border-strong',
+                          )}
+                        >
+                          {checked && <Check className="size-3" strokeWidth={3} />}
+                        </span>
+                        <span className="min-w-0">
+                          <span className="block truncate text-sm font-medium text-foreground">
+                            {p.nombre}
+                          </span>
+                          {p.ubicacion && (
+                            <span className="block truncate text-xs text-muted-foreground">
+                              {p.ubicacion}
+                            </span>
+                          )}
+                        </span>
+                      </button>
+                    );
+                  })}
+                </div>
+              ))}
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }
