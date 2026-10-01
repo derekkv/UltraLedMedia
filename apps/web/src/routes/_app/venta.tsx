@@ -17,7 +17,6 @@ import {
   PANTALLAS,
   permissionKey,
   type ClienteEstado,
-  type PantallaCatalogo,
 } from '@ultraled/shared';
 import { api, ApiException } from '@/lib/api';
 import { meQueryOptions } from '@/lib/auth';
@@ -1007,16 +1006,6 @@ function PantallasPicker({
     [value],
   );
 
-  const ciudades = React.useMemo(() => {
-    const map = new Map<string, PantallaCatalogo[]>();
-    for (const p of PANTALLAS) {
-      const arr = map.get(p.ciudad) ?? [];
-      arr.push(p);
-      map.set(p.ciudad, arr);
-    }
-    return Array.from(map.entries());
-  }, []);
-
   const elegidas = React.useMemo(
     () => PANTALLAS.filter((p) => selected.has(p.nombre)),
     [selected],
@@ -1064,7 +1053,7 @@ function PantallasPicker({
             <MonitorPlay className="size-4 shrink-0 text-muted-foreground" aria-hidden="true" />
             <span className="min-w-0">
               <span className="block truncate text-sm font-medium text-foreground">
-                {p.ciudad} · {p.nombre}
+                {p.ciudad} - {p.nombre}
               </span>
               {p.ubicacion && (
                 <span className="block truncate text-xs text-muted-foreground">{p.ubicacion}</span>
@@ -1098,7 +1087,7 @@ function PantallasPicker({
                 key={p.key}
                 className="inline-flex items-center gap-1 rounded-full bg-primary-soft px-2 py-0.5 text-xs font-medium text-foreground"
               >
-                {p.nombre}
+                {p.ciudad} - {p.nombre}
                 <button
                   type="button"
                   aria-label={`Quitar ${p.nombre}`}
@@ -1134,48 +1123,41 @@ function PantallasPicker({
             className="absolute left-0 right-0 top-[calc(100%+6px)] z-50 overflow-hidden rounded-lg bg-popover elevated-2"
           >
             <div className="max-h-64 overflow-y-auto no-scrollbar p-1.5">
-              {ciudades.map(([ciudad, pantallas]) => (
-                <div key={ciudad} className="mb-1 last:mb-0">
-                  <p className="px-2 py-1 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
-                    {ciudad}
-                  </p>
-                  {pantallas.map((p) => {
-                    const checked = selected.has(p.nombre);
-                    return (
-                      <button
-                        type="button"
-                        key={p.key}
-                        onClick={() => toggle(p.nombre)}
-                        className={cn(
-                          'flex w-full items-center gap-2.5 rounded-md px-2 py-2 text-left transition-colors hover:bg-surface-2',
-                          checked && 'bg-primary-soft',
-                        )}
-                      >
-                        <span
-                          className={cn(
-                            'grid size-4 shrink-0 place-items-center rounded border transition-colors',
-                            checked
-                              ? 'border-primary bg-primary text-primary-foreground'
-                              : 'border-border-strong',
-                          )}
-                        >
-                          {checked && <Check className="size-3" strokeWidth={3} />}
+              {PANTALLAS.map((p) => {
+                const checked = selected.has(p.nombre);
+                return (
+                  <button
+                    type="button"
+                    key={p.key}
+                    onClick={() => toggle(p.nombre)}
+                    className={cn(
+                      'flex w-full items-center gap-2.5 rounded-md px-2 py-2 text-left transition-colors hover:bg-surface-2',
+                      checked && 'bg-primary-soft',
+                    )}
+                  >
+                    <span
+                      className={cn(
+                        'grid size-4 shrink-0 place-items-center rounded border transition-colors',
+                        checked
+                          ? 'border-primary bg-primary text-primary-foreground'
+                          : 'border-border-strong',
+                      )}
+                    >
+                      {checked && <Check className="size-3" strokeWidth={3} />}
+                    </span>
+                    <span className="min-w-0">
+                      <span className="block truncate text-sm font-medium text-foreground">
+                        {p.ciudad} - {p.nombre}
+                      </span>
+                      {p.ubicacion && (
+                        <span className="block truncate text-xs text-muted-foreground">
+                          {p.ubicacion}
                         </span>
-                        <span className="min-w-0">
-                          <span className="block truncate text-sm font-medium text-foreground">
-                            {p.nombre}
-                          </span>
-                          {p.ubicacion && (
-                            <span className="block truncate text-xs text-muted-foreground">
-                              {p.ubicacion}
-                            </span>
-                          )}
-                        </span>
-                      </button>
-                    );
-                  })}
-                </div>
-              ))}
+                      )}
+                    </span>
+                  </button>
+                );
+              })}
             </div>
           </motion.div>
         )}
